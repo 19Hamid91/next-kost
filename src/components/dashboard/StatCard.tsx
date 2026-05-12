@@ -2,7 +2,7 @@
 
 export default function StatCard({ icon: Icon, label, value, color, description }: { icon: any; label: string; value: number; color: string; description: string }) {
   return (
-    <div className="group relative overflow-hidden bg-card p-6 rounded-[var(--radius)] border border-border shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-500">
+    <div className="group relative overflow-hidden bg-card p-6 rounded-2xl border border-border shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-500">
       <div className="flex items-start justify-between">
         <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${color} shadow-lg shadow-slate-100 group-hover:scale-110 transition-transform duration-500`}>
           <Icon className="w-7 h-7" />

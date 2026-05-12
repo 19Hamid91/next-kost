@@ -90,9 +90,9 @@ export default function Header() {
       <div className="flex items-center gap-4 relative">
         <button
           onClick={() => setProfileMenuOpen(!profileMenuOpen)}
-          className="flex items-center gap-2.5 p-1.5 pr-4 bg-muted hover:bg-slate-200 transition-all rounded-[var(--radius)] border border-border group focus:outline-none"
+          className="flex items-center gap-2.5 p-1.5 pr-4 bg-muted hover:bg-slate-200 transition-all rounded-2xl border border-border group focus:outline-none"
         >
-          <div className="w-8 h-8 rounded-[var(--radius)] bg-primary flex items-center justify-center text-xs font-black text-primary-foreground shadow-md group-hover:scale-105 transition-transform">
+          <div className="w-8 h-8 rounded-xl bg-primary flex items-center justify-center text-xs font-black text-primary-foreground shadow-md group-hover:scale-105 transition-transform">
             {session?.user?.name?.charAt(0)?.toUpperCase() || 'A'}
           </div>
           <div className="flex flex-col items-start text-left hidden sm:flex">
@@ -110,14 +110,14 @@ export default function Header() {
               className="fixed inset-0 z-40"
               onClick={() => setProfileMenuOpen(false)}
             />
-            <div className="absolute top-14 right-0 mt-2 w-56 bg-background border border-border rounded-[var(--radius)] shadow-2xl z-50 overflow-hidden flex flex-col p-2 animate-in fade-in slide-in-from-top-2 duration-200">
+            <div className="absolute top-14 right-0 mt-2 w-56 bg-background border border-border rounded-2xl shadow-2xl z-50 overflow-hidden flex flex-col p-2 animate-in fade-in slide-in-from-top-2 duration-200">
               <div className="px-4 py-3 border-b border-border">
                 <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Signed in as</p>
                 <p className="text-xs font-black text-primary truncate">{session?.user?.email}</p>
               </div>
               <button
                 onClick={() => signOut({ callbackUrl: '/login' })}
-                className="flex items-center gap-3 px-4 py-3 mt-1 text-xs font-bold text-destructive hover:bg-destructive/5 transition-all rounded-[var(--radius)] text-left"
+                className="flex items-center gap-3 px-4 py-3 mt-1 text-xs font-bold text-destructive hover:bg-destructive/5 transition-all rounded-xl text-left"
               >
                 <LogOut className="w-4 h-4" />
                 <span className="uppercase tracking-widest">Logout</span>

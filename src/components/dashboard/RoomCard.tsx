@@ -61,7 +61,7 @@ export default function RoomCard({ room, tenant, rental, onClick }: RoomProps) {
           id={`room-${room.No_Kamar}`}
           onClick={() => onClick(room, tenant, rental)}
           className={cn(
-            'group relative cursor-pointer transition-all duration-500 select-none rounded-[var(--radius)] border bg-card shadow-sm hover:shadow-xl hover:-translate-y-1.5 active:scale-95 overflow-hidden',
+            'group relative cursor-pointer transition-all duration-500 select-none rounded-2xl border bg-card shadow-sm hover:shadow-xl hover:-translate-y-1.5 active:scale-95 overflow-hidden',
             statusConfig.border
           )}
         >
@@ -87,7 +87,7 @@ export default function RoomCard({ room, tenant, rental, onClick }: RoomProps) {
       
       {isOccupied && (
         <HoverCardContent 
-          className="w-80 p-0 bg-card border-border shadow-2xl rounded-[var(--radius)] overflow-hidden animate-in zoom-in-95 duration-200"
+          className="w-80 p-0 bg-card border-border shadow-2xl rounded-2xl overflow-hidden animate-in zoom-in-95 duration-200"
           align="center"
           sideOffset={12}
         >
