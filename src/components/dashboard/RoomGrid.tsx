@@ -17,12 +17,12 @@ export default function RoomGrid({ rooms, tenants, rentals, onRoomClick }: RoomG
     <Tabs defaultValue={floors[0]} className="w-full space-y-8">
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
         <div className="overflow-x-auto pb-1">
-          <TabsList className="bg-muted/50 border border-border p-1.5 rounded-2xl h-auto">
+          <TabsList className="bg-muted/50 border border-border p-1 rounded-2xl h-auto">
             {floors.map((floor) => (
               <TabsTrigger 
                 key={floor} 
                 value={floor}
-                className="data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm px-8 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all"
+                className="data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm px-8 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest transition-all"
               >
                 Lantai {floor}
               </TabsTrigger>
@@ -30,18 +30,18 @@ export default function RoomGrid({ rooms, tenants, rentals, onRoomClick }: RoomG
           </TabsList>
         </div>
         
-        <div className="flex items-center gap-6 px-6 py-4 bg-white border border-border rounded-2xl shadow-sm">
+        <div className="flex items-center gap-6 px-6 py-4 bg-white border border-border rounded-2xl shadow-soft">
           <div className="flex items-center gap-2.5">
-            <div className="w-3 h-3 rounded-full bg-emerald-500 shadow-[0_0_12px_rgba(16,185,129,0.3)]" /> 
-            <span className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">Aman</span>
+            <div className="w-3 h-3 rounded-full bg-emerald-500 shadow-[0_0_12px_rgba(16,185,129,0.2)]" /> 
+            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Aman</span>
           </div>
           <div className="flex items-center gap-2.5">
-            <div className="w-3 h-3 rounded-full bg-destructive shadow-[0_0_12px_rgba(244,63,94,0.3)] animate-pulse" /> 
-            <span className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">Tempo</span>
+            <div className="w-3 h-3 rounded-full bg-destructive shadow-[0_0_12px_rgba(239,68,68,0.2)] animate-pulse" /> 
+            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Tempo</span>
           </div>
           <div className="flex items-center gap-2.5">
-            <div className="w-3 h-3 rounded-full bg-slate-200" /> 
-            <span className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">Kosong</span>
+            <div className="w-3 h-3 rounded-full bg-orange-100" /> 
+            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Kosong</span>
           </div>
         </div>
       </div>

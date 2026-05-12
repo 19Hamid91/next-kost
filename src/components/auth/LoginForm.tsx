@@ -25,43 +25,44 @@ export default function LoginForm() {
       transition={{ duration: 0.8 }}
       className="w-full max-w-[420px] z-10"
     >
-      <Card className="w-full bg-white border-slate-200 shadow-2xl shadow-slate-200 rounded-[32px] overflow-hidden">
-        <CardHeader className="text-center space-y-6 pt-10 pb-4">
-          <div className="mx-auto w-20 h-20 bg-slate-900 rounded-[24px] flex items-center justify-center shadow-2xl shadow-slate-200">
-            <Home className="w-10 h-10 text-white" />
+      <Card className="w-full bg-white/40 backdrop-blur-[40px] border-white/20 shadow-soft rounded-[2.5rem] overflow-hidden">
+        <CardHeader className="text-center space-y-6 pt-12 pb-6">
+          <div className="mx-auto w-20 h-20 bg-primary rounded-[2rem] flex items-center justify-center shadow-lg shadow-orange-500/20 relative">
+            <div className="absolute inset-0 bg-white/20 rounded-[2rem] animate-pulse" />
+            <Home className="w-10 h-10 text-white relative z-10" />
           </div>
           <div className="space-y-1">
-            <CardTitle className="text-3xl font-black tracking-tight text-slate-900">NextKost</CardTitle>
-            <CardDescription className="text-slate-400 font-bold uppercase tracking-widest text-[10px]">Management Dashboard</CardDescription>
+            <CardTitle className="text-3xl font-bold tracking-tight text-foreground">NextKost</CardTitle>
+            <CardDescription className="text-foreground/50 font-bold uppercase tracking-[0.2em] text-[10px]">Management Dashboard</CardDescription>
           </div>
         </CardHeader>
-        <CardContent className="px-10 pb-10">
+        <CardContent className="px-10 pb-12">
           <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="space-y-2">
-              <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Username</Label>
+            <div className="space-y-2.5">
+              <Label className="text-[10px] font-bold uppercase tracking-[0.2em] text-foreground/50 ml-1">Username</Label>
               <Input
                 required
                 placeholder="Masukkan username"
-                className="bg-slate-50 border-slate-200 text-slate-900 h-14 rounded-2xl focus:bg-white transition-all px-5"
+                className="h-14 rounded-2xl px-6 focus:ring-primary/20"
                 value={formData.username}
                 onChange={(e) => handleInputChange('username', e.target.value)}
               />
             </div>
-            <div className="space-y-2">
-              <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Kata Sandi</Label>
+            <div className="space-y-2.5">
+              <Label className="text-[10px] font-bold uppercase tracking-[0.2em] text-foreground/50 ml-1">Kata Sandi</Label>
               <div className="relative group">
                 <Input
                   required
                   type={showPassword ? "text" : "password"}
                   placeholder="••••••••"
-                  className="bg-slate-50 border-slate-200 text-slate-900 h-14 rounded-2xl focus:bg-white transition-all px-5 pr-14"
+                  className="h-14 rounded-2xl px-6 pr-14 focus:ring-primary/20"
                   value={formData.password}
                   onChange={(e) => handleInputChange('password', e.target.value)}
                 />
                 <button
                   type="button"
                   onClick={togglePassword}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 p-2 text-slate-400 hover:text-slate-900 transition-colors focus:outline-none"
+                  className="absolute right-5 top-1/2 -translate-y-1/2 p-2 text-foreground/50 hover:text-primary transition-colors focus:outline-none"
                 >
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
@@ -70,7 +71,7 @@ export default function LoginForm() {
             <Button
               type="submit"
               disabled={loading}
-              className="w-full h-14 bg-slate-900 text-white hover:bg-slate-800 font-black rounded-2xl transition-all active:scale-95 shadow-xl shadow-slate-200 mt-2 uppercase tracking-widest text-xs"
+              className="w-full h-14 bg-primary text-white hover:bg-orange-500 hover:scale-[1.02] hover:shadow-xl hover:shadow-orange-500/40 font-bold rounded-2xl transition-all duration-300 active:scale-[0.98] shadow-lg shadow-orange-500/20 mt-4 uppercase tracking-[0.2em] text-xs"
             >
               {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Masuk'}
             </Button>

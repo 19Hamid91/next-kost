@@ -63,7 +63,6 @@ export function useKosts() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Hapus Kost ini? Semua data terkait mungkin perlu dihapus manual.')) return;
     setActionLoading(`delete-${id}`);
     try {
       const res = await fetch(`/api/data/Master_Kost?idField=ID_Kost&idValue=${id}`, {

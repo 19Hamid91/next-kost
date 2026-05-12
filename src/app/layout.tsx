@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "NextKost — Sistem Manajemen Kost",
-  description: "Platform manajemen properti kost digital yang modern dan efisien.",
+  description: "Platform manajemen kost digital yang modern dan efisien.",
 };
 
 export default function RootLayout({

@@ -12,7 +12,7 @@ import { motion } from 'framer-motion';
 export default function DashboardPage() {
   const params = useParams();
   const kostId = params.kostId as string;
-  
+
   const {
     isLoading,
     stats,
@@ -30,59 +30,59 @@ export default function DashboardPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#f8fafc] flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
-          <Loader2 className="w-10 h-10 text-slate-900 animate-spin" />
-          <p className="text-slate-400 text-xs font-black uppercase tracking-[0.2em] animate-pulse">Syncing Dashboard...</p>
+          <Loader2 className="w-10 h-10 text-primary animate-spin" />
+          <p className="text-muted-foreground text-xs font-medium uppercase tracking-[0.2em] animate-pulse">Syncing Dashboard...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] text-slate-900 font-sans flex flex-col">
+    <div className="min-h-screen bg-background text-foreground font-sans flex flex-col selection:bg-orange-100">
       <Header />
-      
+
       <main className="p-6 md:p-12 max-w-[1440px] mx-auto w-full space-y-12 flex-1">
         {/* Hero Section */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-8">
-          <div className="space-y-2">
-            <h1 className="text-4xl md:text-5xl font-black tracking-tighter text-slate-900">Denah Kamar</h1>
-            <p className="text-slate-400 text-sm font-bold uppercase tracking-widest flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              {currentKost?.Nama_Kost || 'Kost Properti'}
-              <span className="text-slate-200">•</span>
-              Klik unit untuk detail
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-12">
+          <div className="space-y-3">
+            <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-foreground">Denah Kamar</h1>
+            <p className="text-muted-foreground text-sm font-medium flex items-center gap-2.5">
+              <span className="w-2 h-2 rounded-full bg-primary animate-pulse shadow-[0_0_8px_rgba(249,115,22,0.4)]" />
+              {currentKost?.Nama_Kost || 'Kost'}
+              <span className="text-border mx-1">•</span>
+              Klik unit untuk detail penyewa
             </p>
           </div>
         </div>
 
         {/* Stats Grid */}
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8"
         >
-          <StatCard icon={BedDouble} label="Total Unit" value={stats.totalRooms} color="bg-slate-900 text-white" description="Kapasitas Properti" />
-          <StatCard icon={Users} label="Terisi" value={stats.occupied} color="bg-emerald-500 text-white" description="Penyewa Aktif" />
-          <StatCard icon={DoorOpen} label="Tersedia" value={stats.vacant} color="bg-blue-500 text-white" description="Unit Kosong" />
-          <StatCard icon={AlertTriangle} label="Tempo" value={stats.overdue} color="bg-rose-500 text-white" description="Perlu Penagihan" />
+          <StatCard icon={BedDouble} label="Total Unit" value={stats.totalRooms} color="bg-primary/10 text-primary" description="Kapasitas Kost" />
+          <StatCard icon={Users} label="Terisi" value={stats.occupied} color="bg-emerald-500/10 text-emerald-600" description="Penyewa Aktif" />
+          <StatCard icon={DoorOpen} label="Tersedia" value={stats.vacant} color="bg-orange-500/10 text-orange-600" description="Unit Kosong" />
+          <StatCard icon={AlertTriangle} label="Tempo" value={stats.overdue} color="bg-destructive/10 text-destructive" description="Perlu Penagihan" />
         </motion.div>
 
         {/* Room Mapping Section */}
-        <section className="space-y-6">
+        <section className="space-y-8">
           {filteredRooms.length === 0 ? (
-            <div className="bg-white border border-slate-200 rounded-[32px] p-20 text-center flex flex-col items-center gap-4">
-              <div className="w-20 h-20 rounded-3xl bg-slate-50 flex items-center justify-center text-slate-200">
-                <BedDouble className="w-10 h-10" />
+            <div className="bg-white border border-border rounded-[2rem] p-24 text-center flex flex-col items-center gap-6 shadow-soft">
+              <div className="w-24 h-24 rounded-3xl bg-muted/50 flex items-center justify-center text-muted-foreground">
+                <BedDouble className="w-12 h-12" />
               </div>
-              <div>
-                <p className="text-slate-900 font-black text-xl">Belum ada unit terdaftar</p>
-                <p className="text-slate-400 text-sm font-bold uppercase tracking-widest mt-1">Tambahkan unit di menu manajemen</p>
+              <div className="space-y-2">
+                <p className="text-foreground font-bold text-2xl">Belum ada unit terdaftar</p>
+                <p className="text-muted-foreground text-sm font-medium uppercase tracking-widest">Tambahkan unit di menu manajemen</p>
               </div>
             </div>
           ) : (
-            <RoomGrid 
+            <RoomGrid
               rooms={filteredRooms}
               tenants={allTenants}
               rentals={allRentals}
@@ -92,7 +92,7 @@ export default function DashboardPage() {
         </section>
       </main>
 
-      <TenantSheet 
+      <TenantSheet
         room={selectedRoom}
         tenant={selectedTenant}
         rental={selectedRental}
@@ -100,8 +100,8 @@ export default function DashboardPage() {
         onClose={closeSheet}
       />
 
-      <footer className="p-10 text-center opacity-20 select-none">
-        <p className="text-[10px] font-black uppercase tracking-[0.5em]">NextKost Dashboard Core v2.0</p>
+      <footer className="p-12 text-center opacity-40 select-none">
+        <p className="text-[11px] font-medium uppercase tracking-[0.4em] text-muted-foreground">NextKost Dashboard Core v2.0</p>
       </footer>
     </div>
   );

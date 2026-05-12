@@ -149,7 +149,6 @@ export function useTenantSheet(
   };
 
   const handleCheckout = async () => {
-    if (!confirm(`Yakin selesaikan sewa ${tenant?.Nama} di Kamar ${room?.No_Kamar}?`)) return;
     setLoading(true);
     try {
       const res = await fetch('/api/data/Transaksi_Sewa', {

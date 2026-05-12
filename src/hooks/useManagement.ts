@@ -89,7 +89,6 @@ export function useManagement(kostId: string) {
   };
 
   const handleDelete = async (sheetName: string, idField: string, idValue: string) => {
-    if (!confirm('Hapus data ini?')) return;
     setActionLoading(`delete-${idValue}`);
     try {
       const res = await fetch(`/api/data/${sheetName}?idField=${idField}&idValue=${idValue}`, {

@@ -17,42 +17,21 @@ export default function KostCard({ kost, onEdit, onDelete, isDeleting }: KostCar
   const router = useRouter();
 
   return (
-    <Card className="group relative bg-white border-slate-200 hover:border-slate-300 shadow-sm hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300 rounded-[32px] overflow-hidden">
-      <CardContent className="p-0">
-        <div 
-          className="p-8 cursor-pointer relative" 
-          onClick={() => router.push(`/${kost.ID_Kost}/dashboard`)}
-        >
-          <div className="flex items-start justify-between mb-6">
-            <div className="w-14 h-14 rounded-2xl bg-slate-900 shadow-lg shadow-slate-200 flex items-center justify-center group-hover:scale-110 transition-transform duration-500">
-              <Building2 className="w-7 h-7 text-white" />
-            </div>
-            <div className="h-10 w-10 rounded-full border border-slate-100 flex items-center justify-center group-hover:bg-slate-900 group-hover:border-slate-900 transition-all duration-300">
-              <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-white" />
-            </div>
+    <Card 
+      onClick={() => router.push(`/${kost.ID_Kost}/dashboard`)}
+      className="group relative bg-white/70 backdrop-blur-xl border-white/20 hover:border-orange-200 shadow-soft hover:shadow-premium transition-all duration-500 rounded-[2.5rem] overflow-hidden cursor-pointer active:scale-[0.98]"
+    >
+      <CardContent className="p-10 space-y-8">
+        <div className="flex items-center justify-between">
+          <div className="w-16 h-16 rounded-[1.5rem] bg-primary shadow-lg shadow-orange-500/10 flex items-center justify-center group-hover:scale-110 transition-transform duration-500">
+            <Building2 className="w-8 h-8 text-primary-foreground" />
           </div>
           
-          <div className="space-y-1.5">
-            <h3 className="font-black text-xl text-slate-900 tracking-tight">{kost.Nama_Kost}</h3>
-            <p className="text-slate-400 text-xs font-bold uppercase tracking-widest line-clamp-1">{kost.Alamat || 'Alamat belum diatur'}</p>
-          </div>
-        </div>
-
-        <div className="px-6 py-4 bg-slate-50/50 border-t border-slate-100 flex items-center justify-between">
-          <Button 
-            variant="ghost" 
-            size="sm"
-            className="h-9 px-4 rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-slate-900 hover:bg-white transition-all"
-            onClick={() => router.push(`/${kost.ID_Kost}/dashboard`)}
-          >
-            <LayoutDashboard className="w-3.5 h-3.5 mr-2 opacity-50" /> Manage
-          </Button>
-          
-          <div className="flex gap-1">
+          <div className="flex gap-2 relative z-10">
             <Button 
               size="icon" 
               variant="ghost" 
-              className="h-9 w-9 rounded-xl text-slate-400 hover:text-blue-500 hover:bg-white transition-all"
+              className="h-10 w-10 rounded-xl bg-muted/50 text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all border border-transparent hover:border-primary/20"
               onClick={(e) => { e.stopPropagation(); onEdit(); }}
             >
               <Pencil className="w-4 h-4" />
@@ -60,11 +39,21 @@ export default function KostCard({ kost, onEdit, onDelete, isDeleting }: KostCar
             <Button 
               size="icon" 
               variant="ghost" 
-              className="h-9 w-9 rounded-xl text-slate-400 hover:text-rose-500 hover:bg-white transition-all"
+              className="h-10 w-10 rounded-xl bg-muted/50 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all border border-transparent hover:border-destructive/20"
               onClick={(e) => { e.stopPropagation(); onDelete(); }}
             >
               {isDeleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
             </Button>
+          </div>
+        </div>
+        
+        <div className="space-y-3">
+          <h3 className="font-bold text-2xl text-foreground tracking-tight group-hover:text-primary transition-colors duration-300">{kost.Nama_Kost}</h3>
+          <div className="flex items-center gap-2.5">
+            <span className="block w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)] shrink-0 translate-y-[0.5px]" />
+            <span className="text-muted-foreground text-[11px] font-bold tracking-wider uppercase leading-none">
+               {kost.Alamat || 'Alamat belum diatur'}
+            </span>
           </div>
         </div>
       </CardContent>
