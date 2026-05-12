@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import useSWR from 'swr';
-import { useSearchParams } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import Header from '@/components/dashboard/Header';
 import RoomGrid from '@/components/dashboard/RoomGrid';
 import TenantSheet from '@/components/dashboard/TenantSheet';
@@ -26,7 +26,9 @@ function StatCard({ icon: Icon, label, value, color }: { icon: any; label: strin
 }
 
 export default function DashboardPage() {
-  const searchParams = useSearchParams();
+  const params = useParams();
+  const kostId = params.kostId as string;
+  
   const { data: kostsData } = useSWR('/api/data/Master_Kost', fetcher);
   const { data: roomsData } = useSWR('/api/data/Master_Kamar', fetcher);
   const { data: tenantsData } = useSWR('/api/data/Master_Penghuni', fetcher);
@@ -41,7 +43,7 @@ export default function DashboardPage() {
 
   if (isInitialLoading) {
     return (
-      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center">
         <div className="flex flex-col items-center gap-3">
           <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
           <p className="text-zinc-500 text-sm font-medium">Memuat Dashboard...</p>
@@ -55,9 +57,7 @@ export default function DashboardPage() {
   const allTenants = tenantsData.data || [];
   const allRentals = rentalsData.data || [];
 
-  const currentKostId = searchParams.get('kostId') || kosts[0]?.ID_Kost;
-
-  const filteredRooms = allRooms.filter((r: any) => r.ID_Kost === currentKostId);
+  const filteredRooms = allRooms.filter((r: any) => r.ID_Kost === kostId);
   const activeRentals = allRentals.filter((r: any) => r.Status_Aktif === 'TRUE');
 
   // Calculate stats for current kost
@@ -86,14 +86,14 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white">
-      <Header kosts={kosts} />
+      <Header />
       
       <main className="p-4 md:p-6 max-w-[1400px] mx-auto space-y-6">
         {/* Page title */}
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Denah Kamar</h1>
           <p className="text-zinc-500 text-sm mt-0.5">
-            {kosts.find((k: any) => k.ID_Kost === currentKostId)?.Nama_Kost || 'Pilih kost di atas'}
+            {kosts.find((k: any) => k.ID_Kost === kostId)?.Nama_Kost || 'Memuat...'}
             {' — '}klik kamar untuk kelola penghuni
           </p>
         </div>

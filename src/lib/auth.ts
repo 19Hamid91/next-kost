@@ -14,11 +14,11 @@ export const authOptions: NextAuthOptions = {
         if (!credentials?.username || !credentials?.password) return null;
 
         try {
-          const users = await getSheetData('Master_Akun');
+          const users = await getSheetData('Master_User');
           console.log("Auth Debug - Credentials:", { username: credentials.username });
           console.log("Auth Debug - Users from Sheet:", users);
-          
-          const user = users.find((u: any) => 
+
+          const user = users.find((u: any) =>
             u.Username === credentials.username && u.Password === credentials.password
           );
 

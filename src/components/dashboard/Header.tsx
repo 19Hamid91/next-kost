@@ -1,72 +1,59 @@
 'use client';
 
-import { useSearchParams, useRouter, usePathname } from 'next/navigation';
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from '@/components/ui/select';
+import { useParams, useRouter, usePathname } from 'next/navigation';
 import { useSession, signOut } from 'next-auth/react';
+import useSWR from 'swr';
 import { Button } from '@/components/ui/button';
-import { LogOut, Building2, LayoutDashboard, Settings } from 'lucide-react';
+import { LogOut, Building2, LayoutDashboard, Settings, ChevronLeft, Loader2 } from 'lucide-react';
 
-interface Kost {
-  ID_Kost: string;
-  Nama_Kost: string;
-}
+const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
-export default function Header({ kosts }: { kosts: Kost[] }) {
-  const searchParams = useSearchParams();
+export default function Header() {
+  const params = useParams();
   const router = useRouter();
   const pathname = usePathname();
   const { data: session } = useSession();
-
-  const currentKostId = searchParams.get('kostId') || kosts[0]?.ID_Kost;
-
-  const handleKostChange = (id: string) => {
-    const params = new URLSearchParams(searchParams.toString());
-    params.set('kostId', id);
-    router.push(`/dashboard?${params.toString()}`);
-  };
+  
+  const kostId = params.kostId as string;
+  const { data: kostsData } = useSWR('/api/data/Master_Kost', fetcher);
+  const kosts = kostsData?.data || [];
+  const currentKost = kosts.find((k: any) => k.ID_Kost === kostId);
 
   const navItems = [
-    { label: 'Dashboard', icon: LayoutDashboard, href: '/dashboard' },
-    { label: 'Management', icon: Settings, href: '/management' },
+    { label: 'Dashboard', icon: LayoutDashboard, href: `/${kostId}/dashboard` },
+    { label: 'Management', icon: Settings, href: `/${kostId}/management` },
   ];
 
   return (
     <header className="h-16 border-b border-white/5 bg-black/70 backdrop-blur-xl flex items-center justify-between px-6 sticky top-0 z-50">
-      {/* Left: Logo + Kost Selector */}
-      <div className="flex items-center gap-5">
+      {/* Left: Back + Kost Name */}
+      <div className="flex items-center gap-4">
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          onClick={() => router.push('/')}
+          className="text-zinc-400 hover:text-white px-2"
+        >
+          <ChevronLeft className="w-4 h-4 mr-1" />
+          Kosts
+        </Button>
+
+        <div className="h-5 w-px bg-zinc-800" />
+
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 bg-gradient-to-tr from-blue-600 to-indigo-600 rounded-lg flex items-center justify-center">
             <Building2 className="w-4 h-4 text-white" />
           </div>
-          <span className="font-bold text-white tracking-tight text-sm">NextKost</span>
+          <span className="font-bold text-white tracking-tight text-sm">
+            {currentKost ? currentKost.Nama_Kost : <Loader2 className="w-4 h-4 animate-spin text-zinc-500" />}
+          </span>
         </div>
-
-        <div className="h-5 w-px bg-zinc-800" />
-
-        <Select value={currentKostId} onValueChange={handleKostChange}>
-          <SelectTrigger id="select-kost" className="w-[180px] bg-zinc-900/80 border-zinc-800 text-white text-sm rounded-lg h-9">
-            <SelectValue placeholder="Pilih Kost" />
-          </SelectTrigger>
-          <SelectContent className="bg-zinc-900 border-zinc-800 text-white">
-            {kosts.map((kost) => (
-              <SelectItem key={kost.ID_Kost} value={kost.ID_Kost} className="text-sm">
-                {kost.Nama_Kost}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
       </div>
 
       {/* Center: Nav */}
       <nav className="hidden md:flex items-center gap-1">
         {navItems.map(({ label, icon: Icon, href }) => {
-          const isActive = pathname === href || pathname.startsWith(href + '?');
+          const isActive = pathname === href;
           return (
             <Button
               key={href}
@@ -102,7 +89,7 @@ export default function Header({ kosts }: { kosts: Kost[] }) {
           variant="ghost" 
           size="icon" 
           className="h-9 w-9 rounded-lg hover:bg-red-500/10 hover:text-red-400 text-zinc-500"
-          onClick={() => signOut()}
+          onClick={() => signOut({ callbackUrl: '/login' })}
         >
           <LogOut className="w-4 h-4" />
         </Button>

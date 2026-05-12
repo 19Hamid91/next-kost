@@ -30,7 +30,7 @@ export default function LoginPage() {
       toast.error('Invalid username or password');
       setLoading(false);
     } else {
-      router.push('/dashboard');
+      router.push('/');
     }
   };
 

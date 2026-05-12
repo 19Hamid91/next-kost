@@ -1,8 +1,8 @@
-
 'use client';
 
 import { useState } from 'react';
 import useSWR, { mutate } from 'swr';
+import { useParams } from 'next/navigation';
 import Header from '@/components/dashboard/Header';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Loader2, Plus, Pencil, Trash2, Save, X } from 'lucide-react';
 import { toast } from 'sonner';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
@@ -26,7 +26,9 @@ const TabContentWrapper = ({ children }: { children: React.ReactNode }) => (
 );
 
 export default function ManagementPage() {
-  const { data: kostsData, isLoading: kostsLoading } = useSWR('/api/data/Master_Kost', fetcher);
+  const params = useParams();
+  const kostId = params.kostId as string;
+
   const { data: roomsData, isLoading: roomsLoading } = useSWR('/api/data/Master_Kamar', fetcher);
   const { data: tenantsData, isLoading: tenantsLoading } = useSWR('/api/data/Master_Penghuni', fetcher);
   const { data: rentalsData, isLoading: rentalsLoading } = useSWR('/api/data/Transaksi_Sewa', fetcher);
@@ -36,7 +38,7 @@ export default function ManagementPage() {
   const [isAdding, setIsAdding] = useState(false);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
-  const isInitialLoading = !kostsData || !roomsData || !tenantsData || !rentalsData;
+  const isInitialLoading = !roomsData || !tenantsData || !rentalsData;
 
   if (isInitialLoading) {
     return (
@@ -49,10 +51,17 @@ export default function ManagementPage() {
     );
   }
 
-  const kosts = kostsData?.data || [];
-  const rooms = roomsData?.data || [];
-  const tenants = tenantsData?.data || [];
-  const rentals = rentalsData?.data || [];
+  const allRooms = roomsData?.data || [];
+  const allTenants = tenantsData?.data || [];
+  const allRentals = rentalsData?.data || [];
+
+  // Filter data by current Kost
+  const rooms = allRooms.filter((r: any) => r.ID_Kost === kostId);
+  const tenants = allTenants.filter((t: any) => t.ID_Kost === kostId || !t.ID_Kost); // Allow older ones if they don't have ID_Kost yet
+  const rentals = allRentals.filter((r: any) => {
+    const room = allRooms.find((rm: any) => rm.ID_Kamar === r.ID_Kamar);
+    return room?.ID_Kost === kostId || r.ID_Kost === kostId;
+  });
 
   const formatPhone = (phone: string) => {
     if (!phone) return '';
@@ -73,10 +82,8 @@ export default function ManagementPage() {
       const method = isAdding ? 'POST' : 'PUT';
       let payload = { ...editFormData };
 
-      if (isAdding && sheetName === 'Master_Kost' && !payload.ID_Kost) {
-        const slug = payload.Nama_Kost?.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]+/g, '');
-        payload.ID_Kost = `${slug}-${Math.random().toString(36).substring(2, 5)}`;
-      }
+      // Auto inject ID_Kost
+      payload.ID_Kost = kostId;
 
       if (isAdding && !payload[idField]) {
         payload[idField] = `${sheetName[0]}${Date.now()}`;
@@ -134,95 +141,20 @@ export default function ManagementPage() {
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white">
-      <Header kosts={kosts} />
+      <Header />
 
       <main className="p-6 max-w-[1400px] mx-auto space-y-8">
         <div className="flex flex-col gap-1">
           <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-white to-zinc-500 bg-clip-text text-transparent">Management System</h1>
-          <p className="text-zinc-500 text-sm">Kelola data master dan transaksi kos Anda secara terpusat.</p>
+          <p className="text-zinc-500 text-sm">Kelola data kamar, penghuni, dan transaksi untuk kost ini.</p>
         </div>
 
-        <Tabs defaultValue="kost" className="w-full space-y-6">
+        <Tabs defaultValue="rooms" className="w-full space-y-6">
           <TabsList className="bg-zinc-900/50 border-zinc-800 p-1">
-            <TabsTrigger value="kost" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white px-8 transition-all">Kost</TabsTrigger>
             <TabsTrigger value="rooms" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white px-8 transition-all">Rooms</TabsTrigger>
             <TabsTrigger value="tenants" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white px-8 transition-all">Tenants</TabsTrigger>
             <TabsTrigger value="rentals" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white px-8 transition-all">Rentals</TabsTrigger>
           </TabsList>
-
-          <TabsContent value="kost">
-            <TabContentWrapper>
-              <Card className="bg-white/5 border-white/10 backdrop-blur-xl overflow-hidden">
-                <CardHeader className="flex flex-row items-center justify-between border-b border-white/5 pb-4">
-                  <CardTitle className="text-lg font-semibold text-white">Master Kost</CardTitle>
-                  <Button size="sm" onClick={() => { setIsAdding(true); setEditFormData({}); setEditingId('new'); }} className="bg-blue-600 hover:bg-blue-700 transition-all active:scale-95">
-                    <Plus className="w-4 h-4 mr-2" /> Add Kost
-                  </Button>
-                </CardHeader>
-                <CardContent className="p-0">
-                  <Table>
-                    <TableHeader className="bg-white/5">
-                      <TableRow className="border-white/10 hover:bg-transparent">
-                        <TableHead className="text-zinc-400 font-medium">ID Kost</TableHead>
-                        <TableHead className="text-zinc-400 font-medium">Nama Kost</TableHead>
-                        <TableHead className="text-zinc-400 font-medium">Alamat</TableHead>
-                        <TableHead className="text-zinc-400 font-medium text-right pr-6">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {isAdding && editingId === 'new' && (
-                        <TableRow className="border-white/10 bg-blue-500/5">
-                          <TableCell className="text-zinc-500 italic text-xs">Auto-slug</TableCell>
-                          <TableCell><Input value={editFormData.Nama_Kost || ''} onChange={e => setEditFormData({ ...editFormData, Nama_Kost: e.target.value })} className="bg-zinc-900 border-zinc-800 h-9" placeholder="Nama Kost" /></TableCell>
-                          <TableCell><Input value={editFormData.Alamat || ''} onChange={e => setEditFormData({ ...editFormData, Alamat: e.target.value })} className="bg-zinc-900 border-zinc-800 h-9" placeholder="Alamat" /></TableCell>
-                          <TableCell className="flex justify-end gap-2 pr-6">
-                            <Button size="sm" disabled={actionLoading === 'save'} onClick={() => handleSave('Master_Kost', 'ID_Kost')} className="bg-green-600 h-8 px-3 transition-all active:scale-95">
-                              {actionLoading === 'save' ? <Loader2 className="w-3 h-3 animate-spin mr-2" /> : <Save className="w-3 h-3 mr-2" />} Simpan
-                            </Button>
-                            <Button size="icon" variant="ghost" onClick={() => { setIsAdding(false); setEditingId(null); }} className="h-8 w-8 text-zinc-500 hover:text-white"><X className="w-4 h-4" /></Button>
-                          </TableCell>
-                        </TableRow>
-                      )}
-                      {kosts.map((kost: any) => (
-                        <TableRow key={kost.ID_Kost} className="border-white/10 hover:bg-white/5 transition-colors">
-                          <TableCell className="text-zinc-500 font-mono text-xs">{kost.ID_Kost}</TableCell>
-                          <TableCell className="text-white font-medium">
-                            {editingId === kost.ID_Kost ? (
-                              <Input value={editFormData.Nama_Kost || ''} onChange={e => setEditFormData({ ...editFormData, Nama_Kost: e.target.value })} className="bg-zinc-900 border-zinc-800 h-9" />
-                            ) : kost.Nama_Kost}
-                          </TableCell>
-                          <TableCell className="text-zinc-400">
-                            {editingId === kost.ID_Kost ? (
-                              <Input value={editFormData.Alamat || ''} onChange={e => setEditFormData({ ...editFormData, Alamat: e.target.value })} className="bg-zinc-900 border-zinc-800 h-9" />
-                            ) : kost.Alamat}
-                          </TableCell>
-                          <TableCell className="text-right pr-6">
-                            <div className="flex justify-end gap-2">
-                              {editingId === kost.ID_Kost ? (
-                                <>
-                                  <Button size="sm" disabled={actionLoading === 'save'} onClick={() => handleSave('Master_Kost', 'ID_Kost')} className="bg-green-600 h-8 px-3">
-                                    {actionLoading === 'save' ? <Loader2 className="w-3 h-3 animate-spin mr-2" /> : <Save className="w-3 h-3 mr-2" />} Simpan
-                                  </Button>
-                                  <Button size="icon" variant="ghost" onClick={() => setEditingId(null)} className="h-8 w-8"><X className="w-4 h-4" /></Button>
-                                </>
-                              ) : (
-                                <>
-                                  <Button size="icon" variant="ghost" onClick={() => handleEdit(kost, 'ID_Kost')} className="h-8 w-8 text-zinc-400 hover:text-blue-400 transition-colors"><Pencil className="w-3.5 h-3.5" /></Button>
-                                  <Button size="icon" variant="ghost" disabled={actionLoading === `delete-${kost.ID_Kost}`} onClick={() => handleDelete('Master_Kost', 'ID_Kost', kost.ID_Kost)} className="h-8 w-8 text-zinc-400 hover:text-red-400 transition-colors">
-                                    {actionLoading === `delete-${kost.ID_Kost}` ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
-                                  </Button>
-                                </>
-                              )}
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </CardContent>
-              </Card>
-            </TabContentWrapper>
-          </TabsContent>
 
           <TabsContent value="rooms">
             <TabContentWrapper>
@@ -237,7 +169,6 @@ export default function ManagementPage() {
                   <Table>
                     <TableHeader className="bg-white/5">
                       <TableRow className="border-white/10">
-                        <TableHead className="text-zinc-400">Kost</TableHead>
                         <TableHead className="text-zinc-400">No. Kamar</TableHead>
                         <TableHead className="text-zinc-400">Lantai</TableHead>
                         <TableHead className="text-zinc-400">Harga Sewa</TableHead>
@@ -247,16 +178,6 @@ export default function ManagementPage() {
                     <TableBody>
                       {isAdding && editingId === 'new' && (
                         <TableRow className="border-white/10 bg-blue-500/5">
-                          <TableCell>
-                            <select
-                              value={editFormData.ID_Kost || ''}
-                              onChange={e => setEditFormData({ ...editFormData, ID_Kost: e.target.value })}
-                              className="w-full bg-zinc-900 border-zinc-800 text-white p-2 rounded-md h-9 text-sm"
-                            >
-                              <option value="">Pilih Kost</option>
-                              {kosts.map((k: any) => <option key={k.ID_Kost} value={k.ID_Kost}>{k.Nama_Kost}</option>)}
-                            </select>
-                          </TableCell>
                           <TableCell><Input value={editFormData.No_Kamar || ''} onChange={e => setEditFormData({ ...editFormData, No_Kamar: e.target.value })} className="bg-zinc-900 border-zinc-800 h-9" placeholder="A1" /></TableCell>
                           <TableCell><Input type="number" value={editFormData.Lantai || '1'} onChange={e => setEditFormData({ ...editFormData, Lantai: e.target.value })} className="bg-zinc-900 border-zinc-800 h-9" /></TableCell>
                           <TableCell><Input type="number" value={editFormData.Harga_Sewa || ''} onChange={e => setEditFormData({ ...editFormData, Harga_Sewa: e.target.value })} className="bg-zinc-900 border-zinc-800 h-9" placeholder="1500000" /></TableCell>
@@ -272,13 +193,6 @@ export default function ManagementPage() {
                       )}
                       {rooms.map((room: any) => (
                         <TableRow key={room.ID_Kamar} className="border-white/10 hover:bg-white/5 transition-colors">
-                          <TableCell className="text-white">
-                            {editingId === room.ID_Kamar ? (
-                              <select value={editFormData.ID_Kost || ''} onChange={e => setEditFormData({ ...editFormData, ID_Kost: e.target.value })} className="bg-zinc-900 border-zinc-800 text-white p-1 rounded h-8 text-xs">
-                                {kosts.map((k: any) => <option key={k.ID_Kost} value={k.ID_Kost}>{k.Nama_Kost}</option>)}
-                              </select>
-                            ) : kosts.find((k: any) => k.ID_Kost === room.ID_Kost)?.Nama_Kost || room.ID_Kost}
-                          </TableCell>
                           <TableCell className="text-white font-bold">
                             {editingId === room.ID_Kamar ? <Input value={editFormData.No_Kamar || ''} onChange={e => setEditFormData({ ...editFormData, No_Kamar: e.target.value })} className="bg-zinc-900 border-zinc-800 h-8" /> : room.No_Kamar}
                           </TableCell>
@@ -422,7 +336,6 @@ export default function ManagementPage() {
                   <Table>
                     <TableHeader className="bg-white/5">
                         <TableRow className="border-white/10">
-                          <TableHead className="text-zinc-400">Kost</TableHead>
                           <TableHead className="text-zinc-400">Kamar</TableHead>
                           <TableHead className="text-zinc-400">Penghuni</TableHead>
                           <TableHead className="text-zinc-400">Tgl Masuk</TableHead>
@@ -436,7 +349,6 @@ export default function ManagementPage() {
                     <TableBody>
                       {isAdding && editingId === 'new' && (
                         <TableRow className="border-white/10 bg-blue-500/5">
-                          <TableCell className="text-zinc-500 italic">Auto</TableCell>
                           <TableCell>
                             <select value={editFormData.ID_Kamar || ''} onChange={e => setEditFormData({ ...editFormData, ID_Kamar: e.target.value })} className="w-full bg-zinc-900 border-zinc-800 text-white p-2 rounded-md h-9 text-xs">
                               <option value="">Kamar</option>
@@ -474,9 +386,6 @@ export default function ManagementPage() {
                         const tenant = tenants.find((t: any) => t.ID_Penghuni === rental.ID_Penghuni);
                         return (
                           <TableRow key={rental.ID_Sewa} className="border-white/10 hover:bg-white/5 transition-colors text-sm">
-                            <TableCell className="text-blue-400 font-medium">
-                              {kosts.find((k: any) => k.ID_Kost === rooms.find((r: any) => r.ID_Kamar === rental.ID_Kamar)?.ID_Kost)?.Nama_Kost || '-'}
-                            </TableCell>
                             <TableCell className="text-white font-bold">{room?.No_Kamar || rental.ID_Kamar}</TableCell>
                             <TableCell className="text-white">{tenant?.Nama || rental.ID_Penghuni}</TableCell>
                             <TableCell className="text-zinc-400 text-xs">{rental.Tgl_Masuk}</TableCell>
