@@ -6,7 +6,7 @@ export default function KostLayout({
   params: { kostId: string };
 }) {
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white">
+    <div className="min-h-screen bg-[#f8fafc] text-slate-900">
       {children}
     </div>
   );

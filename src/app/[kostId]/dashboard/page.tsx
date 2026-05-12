@@ -1,126 +1,95 @@
 'use client';
 
-import { useState } from 'react';
-import useSWR from 'swr';
 import { useParams } from 'next/navigation';
 import Header from '@/components/dashboard/Header';
 import RoomGrid from '@/components/dashboard/RoomGrid';
 import TenantSheet from '@/components/dashboard/TenantSheet';
-import { Loader2, BedDouble, Users, AlertTriangle, DoorOpen } from 'lucide-react';
-import { addMonths, isAfter, parseISO } from 'date-fns';
-
-const fetcher = (url: string) => fetch(url).then((res) => res.json());
-
-function StatCard({ icon: Icon, label, value, color }: { icon: any; label: string; value: number; color: string }) {
-  return (
-    <div className="flex items-center gap-4 p-4 bg-white/5 border border-white/10 rounded-2xl backdrop-blur-xl">
-      <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${color}`}>
-        <Icon className="w-5 h-5" />
-      </div>
-      <div>
-        <p className="text-2xl font-bold text-white">{value}</p>
-        <p className="text-xs text-zinc-500">{label}</p>
-      </div>
-    </div>
-  );
-}
+import StatCard from '@/components/dashboard/StatCard';
+import { BedDouble, Users, AlertTriangle, DoorOpen, Loader2 } from 'lucide-react';
+import { useDashboard } from '@/hooks/useDashboard';
+import { motion } from 'framer-motion';
 
 export default function DashboardPage() {
   const params = useParams();
   const kostId = params.kostId as string;
   
-  const { data: kostsData } = useSWR('/api/data/Master_Kost', fetcher);
-  const { data: roomsData } = useSWR('/api/data/Master_Kamar', fetcher);
-  const { data: tenantsData } = useSWR('/api/data/Master_Penghuni', fetcher);
-  const { data: rentalsData } = useSWR('/api/data/Transaksi_Sewa', fetcher);
+  const {
+    isLoading,
+    stats,
+    currentKost,
+    filteredRooms,
+    allTenants,
+    allRentals,
+    selectedRoom,
+    selectedTenant,
+    selectedRental,
+    isSheetOpen,
+    handleRoomClick,
+    closeSheet
+  } = useDashboard(kostId);
 
-  const [selectedRoom, setSelectedRoom] = useState<any>(null);
-  const [selectedTenant, setSelectedTenant] = useState<any>(null);
-  const [selectedRental, setSelectedRental] = useState<any>(null);
-  const [isSheetOpen, setIsSheetOpen] = useState(false);
-
-  const isInitialLoading = !kostsData || !roomsData || !tenantsData || !rentalsData;
-
-  if (isInitialLoading) {
+  if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="flex flex-col items-center gap-3">
-          <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
-          <p className="text-zinc-500 text-sm font-medium">Memuat Dashboard...</p>
+      <div className="min-h-screen bg-[#f8fafc] flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="w-10 h-10 text-slate-900 animate-spin" />
+          <p className="text-slate-400 text-xs font-black uppercase tracking-[0.2em] animate-pulse">Syncing Dashboard...</p>
         </div>
       </div>
     );
   }
 
-  const kosts = kostsData.data || [];
-  const allRooms = roomsData.data || [];
-  const allTenants = tenantsData.data || [];
-  const allRentals = rentalsData.data || [];
-
-  const filteredRooms = allRooms.filter((r: any) => r.ID_Kost === kostId);
-  const activeRentals = allRentals.filter((r: any) => r.Status_Aktif === 'TRUE');
-
-  // Calculate stats for current kost
-  const kostRoomIds = new Set(filteredRooms.map((r: any) => r.ID_Kamar));
-  const kostActiveRentals = activeRentals.filter((r: any) => kostRoomIds.has(r.ID_Kamar));
-  const overdueRentals = kostActiveRentals.filter((rental: any) => {
-    if (!rental.Tgl_Masuk) return false;
-    const tglMasuk = parseISO(rental.Tgl_Masuk);
-    const periode = parseInt(rental.Periode_Sewa) || 1;
-    return isAfter(new Date(), addMonths(tglMasuk, periode));
-  });
-
-  const stats = {
-    totalRooms: filteredRooms.length,
-    occupied: kostActiveRentals.length,
-    vacant: filteredRooms.length - kostActiveRentals.length,
-    overdue: overdueRentals.length,
-  };
-
-  const handleRoomClick = (room: any, tenant?: any, rental?: any) => {
-    setSelectedRoom(room);
-    setSelectedTenant(tenant || null);
-    setSelectedRental(rental || null);
-    setIsSheetOpen(true);
-  };
-
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white">
+    <div className="min-h-screen bg-[#f8fafc] text-slate-900 font-sans flex flex-col">
       <Header />
       
-      <main className="p-4 md:p-6 max-w-[1400px] mx-auto space-y-6">
-        {/* Page title */}
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Denah Kamar</h1>
-          <p className="text-zinc-500 text-sm mt-0.5">
-            {kosts.find((k: any) => k.ID_Kost === kostId)?.Nama_Kost || 'Memuat...'}
-            {' — '}klik kamar untuk kelola penghuni
-          </p>
-        </div>
-
-        {/* Stats Row */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <StatCard icon={BedDouble} label="Total Kamar" value={stats.totalRooms} color="bg-blue-500/10 text-blue-400" />
-          <StatCard icon={Users} label="Terisi" value={stats.occupied} color="bg-emerald-500/10 text-emerald-400" />
-          <StatCard icon={DoorOpen} label="Kosong" value={stats.vacant} color="bg-zinc-500/10 text-zinc-400" />
-          <StatCard icon={AlertTriangle} label="Overdue" value={stats.overdue} color="bg-red-500/10 text-red-400" />
-        </div>
-
-        {/* Room Grid */}
-        {filteredRooms.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-24 text-center">
-            <BedDouble className="w-12 h-12 text-zinc-700 mb-4" />
-            <p className="text-zinc-400 font-medium">Belum ada kamar di kost ini</p>
-            <p className="text-zinc-600 text-sm mt-1">Tambahkan kamar di halaman <span className="text-blue-400">Management → Rooms</span></p>
+      <main className="p-6 md:p-12 max-w-[1440px] mx-auto w-full space-y-12 flex-1">
+        {/* Hero Section */}
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-8">
+          <div className="space-y-2">
+            <h1 className="text-4xl md:text-5xl font-black tracking-tighter text-slate-900">Denah Kamar</h1>
+            <p className="text-slate-400 text-sm font-bold uppercase tracking-widest flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              {currentKost?.Nama_Kost || 'Kost Properti'}
+              <span className="text-slate-200">•</span>
+              Klik unit untuk detail
+            </p>
           </div>
-        ) : (
-          <RoomGrid 
-            rooms={filteredRooms}
-            tenants={allTenants}
-            rentals={allRentals}
-            onRoomClick={handleRoomClick}
-          />
-        )}
+        </div>
+
+        {/* Stats Grid */}
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8"
+        >
+          <StatCard icon={BedDouble} label="Total Unit" value={stats.totalRooms} color="bg-slate-900 text-white" description="Kapasitas Properti" />
+          <StatCard icon={Users} label="Terisi" value={stats.occupied} color="bg-emerald-500 text-white" description="Penyewa Aktif" />
+          <StatCard icon={DoorOpen} label="Tersedia" value={stats.vacant} color="bg-blue-500 text-white" description="Unit Kosong" />
+          <StatCard icon={AlertTriangle} label="Tempo" value={stats.overdue} color="bg-rose-500 text-white" description="Perlu Penagihan" />
+        </motion.div>
+
+        {/* Room Mapping Section */}
+        <section className="space-y-6">
+          {filteredRooms.length === 0 ? (
+            <div className="bg-white border border-slate-200 rounded-[32px] p-20 text-center flex flex-col items-center gap-4">
+              <div className="w-20 h-20 rounded-3xl bg-slate-50 flex items-center justify-center text-slate-200">
+                <BedDouble className="w-10 h-10" />
+              </div>
+              <div>
+                <p className="text-slate-900 font-black text-xl">Belum ada unit terdaftar</p>
+                <p className="text-slate-400 text-sm font-bold uppercase tracking-widest mt-1">Tambahkan unit di menu manajemen</p>
+              </div>
+            </div>
+          ) : (
+            <RoomGrid 
+              rooms={filteredRooms}
+              tenants={allTenants}
+              rentals={allRentals}
+              onRoomClick={handleRoomClick}
+            />
+          )}
+        </section>
       </main>
 
       <TenantSheet 
@@ -128,8 +97,12 @@ export default function DashboardPage() {
         tenant={selectedTenant}
         rental={selectedRental}
         isOpen={isSheetOpen}
-        onClose={() => setIsSheetOpen(false)}
+        onClose={closeSheet}
       />
+
+      <footer className="p-10 text-center opacity-20 select-none">
+        <p className="text-[10px] font-black uppercase tracking-[0.5em]">NextKost Dashboard Core v2.0</p>
+      </footer>
     </div>
   );
 }

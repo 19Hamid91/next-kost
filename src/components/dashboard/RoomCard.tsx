@@ -30,88 +30,111 @@ export default function RoomCard({ room, tenant, rental, onClick }: RoomProps) {
     sisaHari = differenceInDays(tglJatuhTempo, new Date());
   }
 
-  const cardStyle = isOccupied
+  const statusConfig = isOccupied
     ? isOverdue
-      ? 'bg-red-500/10 border-red-500/40 text-red-300 hover:border-red-500/70'
-      : 'bg-emerald-500/10 border-emerald-500/40 text-emerald-300 hover:border-emerald-500/70'
-    : 'bg-zinc-800/60 border-zinc-700/60 text-zinc-400 hover:border-zinc-500';
+      ? { 
+          bg: 'bg-card', 
+          border: 'border-destructive/30', 
+          accent: 'bg-destructive', 
+          text: 'text-destructive',
+          label: 'Jatuh Tempo'
+        }
+      : { 
+          bg: 'bg-card', 
+          border: 'border-emerald-200', 
+          accent: 'bg-emerald-500', 
+          text: 'text-emerald-600',
+          label: tenant?.Nama?.split(' ')[0] || 'Terisi'
+        }
+    : { 
+        bg: 'bg-card', 
+        border: 'border-border', 
+        accent: 'bg-slate-200', 
+        text: 'text-muted-foreground',
+        label: 'Kosong'
+      };
 
   return (
-    <HoverCard openDelay={150} closeDelay={50}>
+    <HoverCard openDelay={100} closeDelay={50}>
       <HoverCardTrigger asChild>
-        <Card 
+        <div 
           id={`room-${room.No_Kamar}`}
           onClick={() => onClick(room, tenant, rental)}
           className={cn(
-            'cursor-pointer transition-all duration-200 border-2 select-none',
-            'hover:scale-[1.03] active:scale-95',
-            cardStyle
+            'group relative cursor-pointer transition-all duration-500 select-none rounded-[var(--radius)] border bg-card shadow-sm hover:shadow-xl hover:-translate-y-1.5 active:scale-95 overflow-hidden',
+            statusConfig.border
           )}
         >
-          <CardContent className="p-4 flex flex-col items-center justify-center gap-1.5 min-h-[90px]">
-            <span className="text-xl font-bold tracking-tight">{room.No_Kamar}</span>
-            <span className="text-[10px] uppercase tracking-widest opacity-60 text-center leading-tight">
-              {isOccupied ? (tenant?.Nama?.split(' ')[0] || 'Terisi') : 'Kosong'}
-            </span>
-            {isOccupied && isOverdue && (
-              <Badge variant="destructive" className="text-[9px] px-1.5 py-0 mt-0.5 animate-pulse">
-                OVERDUE
-              </Badge>
-            )}
-          </CardContent>
-        </Card>
+          {/* Status bar top */}
+          <div className={cn('h-2 w-full transition-colors duration-500', statusConfig.accent)} />
+          
+          <div className="p-5 flex flex-col items-center justify-center gap-1 min-h-[100px]">
+            <span className="text-3xl font-black text-primary tracking-tighter">{room.No_Kamar}</span>
+            <div className="flex flex-col items-center gap-1">
+              <span className={cn('text-[10px] font-black uppercase tracking-widest', statusConfig.text)}>
+                {statusConfig.label}
+              </span>
+              {isOccupied && isOverdue && (
+                <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-destructive/10 text-destructive animate-pulse">
+                   <AlertTriangle className="w-2.5 h-2.5" />
+                   <span className="text-[8px] font-black uppercase tracking-tighter">Urgent</span>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       </HoverCardTrigger>
       
       {isOccupied && (
         <HoverCardContent 
-          className="w-72 bg-zinc-900/95 border-zinc-800 text-white backdrop-blur-xl shadow-2xl"
+          className="w-80 p-0 bg-card border-border shadow-2xl rounded-[var(--radius)] overflow-hidden animate-in zoom-in-95 duration-200"
           align="center"
-          sideOffset={8}
+          sideOffset={12}
         >
-          <div className="space-y-3">
+          <div className="p-5 space-y-5">
             {/* Header */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-500 to-purple-500 flex items-center justify-center text-xs font-bold">
-                  {tenant?.Nama?.charAt(0) || '?'}
-                </div>
-                <div>
-                  <p className="text-sm font-semibold">{tenant?.Nama}</p>
-                  <p className="text-[10px] text-zinc-500">{tenant?.No_HP}</p>
-                </div>
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-2xl bg-muted flex items-center justify-center text-sm font-black text-primary shadow-sm border border-border">
+                {tenant?.Nama?.charAt(0) || '?'}
               </div>
-              <Badge className={isOverdue ? 'bg-red-500/20 text-red-400 border-red-500/30' : 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'}>
-                {isOverdue ? 'Overdue' : 'Aman'}
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-black text-primary truncate">{tenant?.Nama}</p>
+                <p className="text-[11px] text-muted-foreground font-bold tracking-tight">{tenant?.No_HP}</p>
+              </div>
+              <Badge variant="outline" className={cn('rounded-xl border-0 font-black text-[9px] uppercase tracking-widest', isOverdue ? 'bg-destructive/10 text-destructive' : 'bg-emerald-50 text-emerald-600')}>
+                {isOverdue ? 'Jatuh Tempo' : 'Lancar'}
               </Badge>
             </div>
 
-            {/* Info pills */}
-            <div className="grid grid-cols-2 gap-2 pt-2 border-t border-zinc-800">
-              <div className="flex items-center gap-1.5 text-xs text-zinc-400">
-                <Car className="w-3.5 h-3.5 text-zinc-500" />
-                <span>{tenant?.Bawa_Mobil === 'Ya' ? 'Bawa Mobil' : 'Tanpa Mobil'}</span>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="p-3 bg-muted/50 rounded-2xl border border-border space-y-1">
+                <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">Fasilitas</p>
+                <div className="flex items-center gap-2 text-[11px] text-primary font-black">
+                  <Car className="w-3.5 h-3.5 text-muted-foreground" />
+                  <span>{tenant?.Bawa_Mobil === 'Ya' ? 'Mobil' : 'Motor'}</span>
+                </div>
               </div>
-              <div className={cn('flex items-center gap-1.5 text-xs', isOverdue ? 'text-red-400' : 'text-zinc-400')}>
-                {isOverdue ? <AlertTriangle className="w-3.5 h-3.5" /> : <Clock className="w-3.5 h-3.5 text-zinc-500" />}
-                <span>
-                  {isOverdue
-                    ? `${Math.abs(sisaHari)} hari lewat`
-                    : `${sisaHari} hari lagi`}
-                </span>
+              <div className={cn('p-3 rounded-2xl border space-y-1', isOverdue ? 'bg-destructive/5 border-destructive/10' : 'bg-emerald-50/50 border-emerald-100')}>
+                <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">Status Sewa</p>
+                <div className={cn('flex items-center gap-2 text-[11px] font-black', isOverdue ? 'text-destructive' : 'text-emerald-600')}>
+                  {isOverdue ? <AlertTriangle className="w-3.5 h-3.5" /> : <Clock className="w-3.5 h-3.5" />}
+                  <span>
+                    {isOverdue ? `${Math.abs(sisaHari)} Hari Lewat` : `${sisaHari} Hari Lagi`}
+                  </span>
+                </div>
               </div>
             </div>
 
             {tglJatuhTempo && (
-              <p className="text-[10px] text-zinc-600">
-                Jatuh tempo: {format(tglJatuhTempo, 'd MMM yyyy', { locale: localeId })}
-              </p>
+              <div className="flex items-center justify-between px-4 py-3 bg-primary text-primary-foreground rounded-2xl shadow-xl shadow-slate-200">
+                <span className="text-[10px] font-black uppercase tracking-[0.2em] opacity-60">Jatuh Tempo</span>
+                <span className="text-xs font-black">{format(tglJatuhTempo, 'd MMM yyyy', { locale: localeId })}</span>
+              </div>
             )}
 
-            {/* Click hint */}
-            <div className="flex items-center gap-1.5 text-[10px] text-zinc-600 pt-1 border-t border-zinc-800/50">
-              <DoorOpen className="w-3 h-3" />
-              <span>Klik untuk kelola kamar</span>
-            </div>
+            <p className="text-[10px] text-muted-foreground text-center font-black uppercase tracking-[0.3em] pt-1 animate-pulse">
+              Kelola Manajemen
+            </p>
           </div>
         </HoverCardContent>
       )}

@@ -25,6 +25,7 @@ import { toast } from 'sonner';
 import { User, Phone, Car, Calendar, Clock, AlertTriangle, DoorOpen } from 'lucide-react';
 import { addMonths, isAfter, differenceInDays, format, parseISO } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
+import { cn } from '@/lib/utils';
 
 interface TenantSheetProps {
   room: any;
@@ -189,76 +190,101 @@ export default function TenantSheet({ room, tenant, rental, isOpen, onClose }: T
 
   return (
     <Sheet open={isOpen} onOpenChange={onClose}>
-      <SheetContent className="bg-zinc-950 border-zinc-800 text-white w-[420px] sm:w-[520px] overflow-y-auto">
-        <SheetHeader className="pb-6 border-b border-zinc-800">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center">
-              <DoorOpen className="w-5 h-5 text-blue-400" />
-            </div>
-            <div>
-              <SheetTitle className="text-white text-xl">Kamar {room?.No_Kamar}</SheetTitle>
-              <SheetDescription className="text-zinc-500 text-xs">
-                {tenant ? `Penghuni aktif sejak ${rental?.Tgl_Masuk ? format(parseISO(rental.Tgl_Masuk), 'd MMM yyyy', { locale: localeId }) : '-'}` : 'Kamar kosong — siap check-in'}
-              </SheetDescription>
-            </div>
-          </div>
+      <SheetContent className="bg-white border-l border-slate-200 text-slate-900 w-full sm:w-[540px] p-0 flex flex-col h-full shadow-2xl overflow-hidden">
+        <div className="p-8 bg-slate-50 border-b border-slate-200/60 relative overflow-hidden">
+          {/* Subtle background decoration */}
+          <div className="absolute -top-24 -right-24 w-64 h-64 bg-blue-500/5 rounded-full blur-3xl" />
 
-          {/* Status banner */}
-          {tenant && rentalStatus && (
-            <div className={`mt-4 p-3 rounded-xl flex items-center justify-between text-sm ${rentalStatus.isOverdue
-                ? 'bg-red-500/10 border border-red-500/20 text-red-400'
-                : 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400'
-              }`}>
-              <div className="flex items-center gap-2">
-                {rentalStatus.isOverdue ? <AlertTriangle className="w-4 h-4" /> : <Clock className="w-4 h-4" />}
-                <span>{rentalStatus.isOverdue ? 'Melewati jatuh tempo!' : 'Sewa berjalan'}</span>
+          <SheetHeader className="relative z-10">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 rounded-2xl bg-slate-900 shadow-xl shadow-slate-200 flex items-center justify-center">
+                <DoorOpen className="w-7 h-7 text-white" />
               </div>
-              <span className="font-bold">
-                {rentalStatus.isOverdue
-                  ? `${Math.abs(rentalStatus.sisaHari)} hari lewat`
-                  : `${rentalStatus.sisaHari} hari lagi`}
-              </span>
+              <div>
+                <SheetTitle className="text-slate-900 text-2xl font-black tracking-tight">Kamar {room?.No_Kamar}</SheetTitle>
+                <SheetDescription className="text-slate-500 text-xs font-bold uppercase tracking-widest mt-1">
+                  {tenant ? `Penghuni Aktif` : 'Siap Huni — Kosong'}
+                </SheetDescription>
+              </div>
             </div>
-          )}
-        </SheetHeader>
 
-        <div className="py-6 space-y-6">
+            {/* Status banner */}
+            {tenant && rentalStatus && (
+              <div className={cn(
+                "mt-6 p-4 rounded-2xl flex items-center justify-between shadow-sm border transition-all duration-500",
+                rentalStatus.isOverdue
+                  ? 'bg-rose-500 border-rose-400 text-white shadow-rose-100'
+                  : 'bg-white border-slate-200 text-slate-900 shadow-slate-100'
+              )}>
+                <div className="flex items-center gap-3">
+                  <div className={cn("w-8 h-8 rounded-xl flex items-center justify-center", rentalStatus.isOverdue ? 'bg-white/20' : 'bg-slate-100')}>
+                    {rentalStatus.isOverdue ? <AlertTriangle className="w-4 h-4" /> : <Clock className="w-4 h-4 text-slate-500" />}
+                  </div>
+                  <div>
+                    <p className={cn("text-[10px] font-black uppercase tracking-wider", rentalStatus.isOverdue ? 'text-white/80' : 'text-slate-400')}>Status Sewa</p>
+                    <p className="text-sm font-black">{rentalStatus.isOverdue ? 'Melewati Jatuh Tempo' : 'Sewa Berjalan Lancar'}</p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className={cn("text-[10px] font-black uppercase tracking-wider", rentalStatus.isOverdue ? 'text-white/80' : 'text-slate-400')}>
+                    {rentalStatus.isOverdue ? 'Keterlambatan' : 'Sisa Waktu'}
+                  </p>
+                  <p className="text-sm font-black">
+                    {rentalStatus.isOverdue
+                      ? `${Math.abs(rentalStatus.sisaHari)} Hari`
+                      : `${rentalStatus.sisaHari} Hari`}
+                  </p>
+                </div>
+              </div>
+            )}
+          </SheetHeader>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-8 space-y-8">
           {/* OCCUPIED VIEW */}
           {tenant && mode === 'view' && (
             <>
               <section className="space-y-4">
-                <h3 className="text-xs uppercase tracking-widest text-zinc-500 font-semibold">Data Penghuni</h3>
+                <div className="flex items-center justify-between">
+                  <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Data Penghuni</h3>
+                </div>
                 <div className="grid gap-3">
-                  <div className="flex items-center gap-3 p-3 bg-zinc-900 rounded-xl border border-zinc-800">
-                    <User className="w-4 h-4 text-blue-400 shrink-0" />
+                  <div className="flex items-center gap-4 p-4 bg-slate-50 rounded-2xl border border-slate-100 group hover:bg-white hover:shadow-md transition-all duration-300">
+                    <div className="w-10 h-10 rounded-xl bg-white shadow-sm flex items-center justify-center text-slate-400">
+                      <User className="w-5 h-5" />
+                    </div>
                     <div>
-                      <p className="text-xs text-zinc-500">Nama</p>
-                      <p className="text-sm font-medium text-white">{tenant.Nama}</p>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Nama Lengkap</p>
+                      <p className="text-sm font-black text-slate-900">{tenant.Nama}</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3 p-3 bg-zinc-900 rounded-xl border border-zinc-800">
-                    <Phone className="w-4 h-4 text-blue-400 shrink-0" />
+                  <div className="flex items-center gap-4 p-4 bg-slate-50 rounded-2xl border border-slate-100 group hover:bg-white hover:shadow-md transition-all duration-300">
+                    <div className="w-10 h-10 rounded-xl bg-white shadow-sm flex items-center justify-center text-slate-400">
+                      <Phone className="w-5 h-5" />
+                    </div>
                     <div>
-                      <p className="text-xs text-zinc-500">No. HP</p>
-                      <p className="text-sm font-medium text-white">{tenant.No_HP}</p>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Nomor WhatsApp</p>
+                      <p className="text-sm font-black text-slate-900">{tenant.No_HP}</p>
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-3">
-                    <div className="flex items-center gap-3 p-3 bg-zinc-900 rounded-xl border border-zinc-800">
-                      <Car className="w-4 h-4 text-blue-400 shrink-0" />
+                    <div className="flex items-center gap-4 p-4 bg-slate-50 rounded-2xl border border-slate-100 group hover:bg-white hover:shadow-md transition-all duration-300">
+                      <div className="w-10 h-10 rounded-xl bg-white shadow-sm flex items-center justify-center text-slate-400">
+                        <Car className="w-5 h-5" />
+                      </div>
                       <div>
-                        <p className="text-xs text-zinc-500">Bawa Mobil</p>
-                        <Badge variant={tenant.Bawa_Mobil === 'Ya' ? 'default' : 'secondary'} className="text-xs mt-0.5">
-                          {tenant.Bawa_Mobil}
-                        </Badge>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Mobil</p>
+                        <p className="text-xs font-black text-slate-900">{tenant.Bawa_Mobil}</p>
                       </div>
                     </div>
                     {tenant.Kontak_Darurat && (
-                      <div className="flex items-center gap-3 p-3 bg-zinc-900 rounded-xl border border-zinc-800">
-                        <Phone className="w-4 h-4 text-amber-400 shrink-0" />
+                      <div className="flex items-center gap-4 p-4 bg-slate-50 rounded-2xl border border-slate-100 group hover:bg-white hover:shadow-md transition-all duration-300">
+                        <div className="w-10 h-10 rounded-xl bg-white shadow-sm flex items-center justify-center text-slate-400">
+                          <Phone className="w-5 h-5 text-rose-400" />
+                        </div>
                         <div>
-                          <p className="text-xs text-zinc-500">Kontak Darurat</p>
-                          <p className="text-sm font-medium text-white">{tenant.Kontak_Darurat}</p>
+                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Darurat</p>
+                          <p className="text-xs font-black text-slate-900">{tenant.Kontak_Darurat}</p>
                         </div>
                       </div>
                     )}
@@ -267,38 +293,30 @@ export default function TenantSheet({ room, tenant, rental, isOpen, onClose }: T
               </section>
 
               <section className="space-y-4">
-                <h3 className="text-xs uppercase tracking-widest text-zinc-500 font-semibold">Detail Sewa</h3>
+                <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Detail Kontrak</h3>
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="p-3 bg-zinc-900 rounded-xl border border-zinc-800">
-                    <p className="text-xs text-zinc-500">Tgl Masuk</p>
-                    <p className="text-sm font-medium text-white">
+                  <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 space-y-1">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Mulai Sewa</p>
+                    <p className="text-sm font-black text-slate-900">
                       {rental?.Tgl_Masuk ? format(parseISO(rental.Tgl_Masuk), 'd MMM yyyy', { locale: localeId }) : '-'}
                     </p>
                   </div>
-                  <div className="p-3 bg-zinc-900 rounded-xl border border-zinc-800">
-                    <p className="text-xs text-zinc-500">Jatuh Tempo</p>
-                    <p className={`text-sm font-medium ${rentalStatus?.isOverdue ? 'text-red-400' : 'text-white'}`}>
+                  <div className="p-4 bg-slate-900 rounded-2xl shadow-lg shadow-slate-200 space-y-1">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Jatuh Tempo</p>
+                    <p className={cn('text-sm font-black', rentalStatus?.isOverdue ? 'text-rose-400' : 'text-white')}>
                       {rentalStatus ? format(rentalStatus.tglJatuhTempo, 'd MMM yyyy', { locale: localeId }) : '-'}
                     </p>
                   </div>
-                  <div className="p-3 bg-zinc-900 rounded-xl border border-zinc-800">
-                    <p className="text-xs text-zinc-500">Periode</p>
-                    <p className="text-sm font-medium text-white">{getPeriodeLabel(rental?.Periode_Sewa)}</p>
+                  <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 space-y-1">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Periode</p>
+                    <p className="text-sm font-black text-slate-900">{getPeriodeLabel(rental?.Periode_Sewa)}</p>
                   </div>
-                  <div className="p-3 bg-zinc-900 rounded-xl border border-zinc-800">
-                    <p className="text-xs text-zinc-500">Deposit</p>
-                    <p className="text-sm font-medium text-white">
+                  <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 space-y-1">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Deposit</p>
+                    <p className="text-sm font-black text-slate-900">
                       Rp {parseInt(rental?.Nominal_Deposit || '0').toLocaleString('id-ID')}
                     </p>
                   </div>
-                  {rental?.Tgl_DP && (
-                    <div className="p-3 bg-zinc-900 rounded-xl border border-zinc-800 col-span-2">
-                      <p className="text-xs text-zinc-500">Tanggal DP</p>
-                      <p className="text-sm font-medium text-white">
-                        {format(parseISO(rental.Tgl_DP), 'd MMM yyyy', { locale: localeId })}
-                      </p>
-                    </div>
-                  )}
                 </div>
               </section>
             </>
@@ -308,47 +326,47 @@ export default function TenantSheet({ room, tenant, rental, isOpen, onClose }: T
           {mode === 'checkin' && (
             <>
               <section className="space-y-4">
-                <h3 className="text-xs uppercase tracking-widest text-zinc-500 font-semibold">Data Penghuni Baru</h3>
+                <h3 className="text-xs uppercase tracking-widest text-muted-foreground font-semibold">Data Penghuni Baru</h3>
                 <div className="space-y-3">
                   <div className="space-y-1.5">
-                    <Label className="text-zinc-400 text-xs">Nama Lengkap <span className="text-red-400">*</span></Label>
+                    <Label className="text-muted-foreground text-xs">Nama Lengkap <span className="text-red-500">*</span></Label>
                     <Input
                       value={formData.Nama}
                       onChange={(e) => setFormData({ ...formData, Nama: e.target.value })}
-                      className="bg-zinc-900 border-zinc-800 text-white"
+                      className="bg-background border-border text-foreground"
                       placeholder="Nama penghuni"
                     />
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1.5">
-                      <Label className="text-zinc-400 text-xs">No. HP <span className="text-red-400">*</span></Label>
+                      <Label className="text-muted-foreground text-xs">No. HP <span className="text-red-500">*</span></Label>
                       <Input
                         value={formData.No_HP}
                         onChange={(e) => setFormData({ ...formData, No_HP: e.target.value })}
-                        className="bg-zinc-900 border-zinc-800 text-white"
+                        className="bg-background border-border text-foreground"
                         placeholder="62"
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <Label className="text-zinc-400 text-xs">Kontak Darurat</Label>
+                      <Label className="text-muted-foreground text-xs">Kontak Darurat</Label>
                       <Input
                         value={formData.Kontak_Darurat}
                         onChange={(e) => setFormData({ ...formData, Kontak_Darurat: e.target.value })}
-                        className="bg-zinc-900 border-zinc-800 text-white"
+                        className="bg-background border-border text-foreground"
                         placeholder="62 (ortu/keluarga)"
                       />
                     </div>
                   </div>
                   <div className="space-y-1.5">
-                    <Label className="text-zinc-400 text-xs">Bawa Mobil?</Label>
+                    <Label className="text-muted-foreground text-xs">Bawa Mobil?</Label>
                     <Select
                       value={formData.Bawa_Mobil}
                       onValueChange={(v) => setFormData({ ...formData, Bawa_Mobil: v })}
                     >
-                      <SelectTrigger className="bg-zinc-900 border-zinc-800 text-white">
+                      <SelectTrigger className="bg-background border-border text-foreground">
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent className="bg-zinc-900 border-zinc-800 text-white">
+                      <SelectContent className="bg-popover border-border text-popover-foreground">
                         <SelectItem value="Tidak">Tidak</SelectItem>
                         <SelectItem value="Ya">Ya</SelectItem>
                       </SelectContent>
@@ -358,39 +376,39 @@ export default function TenantSheet({ room, tenant, rental, isOpen, onClose }: T
               </section>
 
               <section className="space-y-4">
-                <h3 className="text-xs uppercase tracking-widest text-zinc-500 font-semibold">Detail Sewa</h3>
+                <h3 className="text-xs uppercase tracking-widest text-muted-foreground font-semibold">Detail Sewa</h3>
                 <div className="space-y-3">
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1.5">
-                      <Label className="text-zinc-400 text-xs">Tanggal Masuk <span className="text-red-400">*</span></Label>
+                      <Label className="text-muted-foreground text-xs">Tanggal Masuk <span className="text-red-500">*</span></Label>
                       <Input
                         type="date"
                         value={formData.Tgl_Masuk}
                         onChange={(e) => setFormData({ ...formData, Tgl_Masuk: e.target.value })}
-                        className="bg-zinc-900 border-zinc-800 text-white"
+                        className="bg-background border-border text-foreground"
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <Label className="text-zinc-400 text-xs">Tanggal DP</Label>
+                      <Label className="text-muted-foreground text-xs">Tanggal DP</Label>
                       <Input
                         type="date"
                         value={formData.Tgl_DP}
                         onChange={(e) => setFormData({ ...formData, Tgl_DP: e.target.value })}
-                        className="bg-zinc-900 border-zinc-800 text-white"
+                        className="bg-background border-border text-foreground"
                       />
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1.5">
-                      <Label className="text-zinc-400 text-xs">Periode Sewa</Label>
+                      <Label className="text-muted-foreground text-xs">Periode Sewa</Label>
                       <Select
                         value={formData.Periode_Sewa}
                         onValueChange={(v) => setFormData({ ...formData, Periode_Sewa: v })}
                       >
-                        <SelectTrigger className="bg-zinc-900 border-zinc-800 text-white">
+                        <SelectTrigger className="bg-background border-border text-foreground">
                           <SelectValue />
                         </SelectTrigger>
-                        <SelectContent className="bg-zinc-900 border-zinc-800 text-white">
+                        <SelectContent className="bg-popover border-border text-popover-foreground">
                           <SelectItem value="1">Bulanan</SelectItem>
                           <SelectItem value="3">3 Bulan</SelectItem>
                           <SelectItem value="6">6 Bulan</SelectItem>
@@ -399,12 +417,12 @@ export default function TenantSheet({ room, tenant, rental, isOpen, onClose }: T
                       </Select>
                     </div>
                     <div className="space-y-1.5">
-                      <Label className="text-zinc-400 text-xs">Nominal Deposit (Rp)</Label>
+                      <Label className="text-muted-foreground text-xs">Nominal Deposit (Rp)</Label>
                       <Input
                         type="number"
                         value={formData.Nominal_Deposit}
                         onChange={(e) => setFormData({ ...formData, Nominal_Deposit: e.target.value })}
-                        className="bg-zinc-900 border-zinc-800 text-white"
+                        className="bg-background border-border text-foreground"
                         placeholder="0"
                       />
                     </div>
@@ -415,40 +433,42 @@ export default function TenantSheet({ room, tenant, rental, isOpen, onClose }: T
           )}
         </div>
 
-        <SheetFooter className="absolute bottom-0 left-0 right-0 p-4 bg-zinc-950/80 backdrop-blur-md border-t border-zinc-800">
-          {mode === 'checkin' ? (
-            <Button
-              id="btn-checkin-submit"
-              onClick={handleCheckin}
-              disabled={loading}
-              className="w-full h-11 bg-blue-600 hover:bg-blue-700 font-semibold rounded-xl transition-all active:scale-95"
-            >
-              {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-              {loading ? 'Menyimpan...' : `Check-in ke Kamar ${room?.No_Kamar}`}
-            </Button>
-          ) : (
-            <div className="flex gap-2 w-full">
+        <div className="p-4 bg-background border-t border-border">
+          <SheetFooter>
+            {mode === 'checkin' ? (
               <Button
-                id="btn-checkout"
-                onClick={handleCheckout}
-                variant="destructive"
+                id="btn-checkin-submit"
+                onClick={handleCheckin}
                 disabled={loading}
-                className="flex-1 h-11 rounded-xl transition-all active:scale-95"
+                className="w-full h-11 bg-primary text-primary-foreground hover:bg-primary/90 font-semibold rounded-xl transition-all active:scale-95"
               >
                 {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-                {loading ? 'Memproses...' : 'Selesaikan Sewa'}
+                {loading ? 'Menyimpan...' : `Check-in ke Kamar ${room?.No_Kamar}`}
               </Button>
-              <Button
-                id="btn-perpanjang"
-                disabled
-                variant="outline"
-                className="flex-1 h-11 border-zinc-800 text-zinc-500 rounded-xl"
-              >
-                Perpanjang Sewa
-              </Button>
-            </div>
-          )}
-        </SheetFooter>
+            ) : (
+              <div className="flex gap-2 w-full">
+                <Button
+                  id="btn-checkout"
+                  onClick={handleCheckout}
+                  variant="destructive"
+                  disabled={loading}
+                  className="flex-1 h-11 rounded-xl transition-all active:scale-95"
+                >
+                  {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                  {loading ? 'Memproses...' : 'Selesaikan Sewa'}
+                </Button>
+                <Button
+                  id="btn-perpanjang"
+                  disabled
+                  variant="outline"
+                  className="flex-1 h-11 border-border text-muted-foreground rounded-xl"
+                >
+                  Perpanjang Sewa
+                </Button>
+              </div>
+            )}
+          </SheetFooter>
+        </div>
       </SheetContent>
     </Sheet>
   );

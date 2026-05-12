@@ -1,416 +1,133 @@
 'use client';
 
-import { useState } from 'react';
-import useSWR, { mutate } from 'swr';
 import { useParams } from 'next/navigation';
 import Header from '@/components/dashboard/Header';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Loader2, Plus, Pencil, Trash2, Save, X } from 'lucide-react';
-import { toast } from 'sonner';
-import { motion } from 'framer-motion';
+import { Loader2 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useManagement } from '@/hooks/useManagement';
+import RoomManagement from '@/components/management/RoomManagement';
+import TenantManagement from '@/components/management/TenantManagement';
+import RentalManagement from '@/components/management/RentalManagement';
 
-const fetcher = (url: string) => fetch(url).then((res) => res.json());
-
-const TabContentWrapper = ({ children }: { children: React.ReactNode }) => (
-  <motion.div
-    initial={{ opacity: 0, y: 10 }}
-    animate={{ opacity: 1, y: 0 }}
-    transition={{ duration: 0.2 }}
-  >
-    {children}
-  </motion.div>
+const TabContentWrapper = ({ children, value }: { children: React.ReactNode, value: string }) => (
+  <TabsContent value={value} className="mt-0 outline-none">
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -20 }}
+      transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+    >
+      {children}
+    </motion.div>
+  </TabsContent>
 );
 
 export default function ManagementPage() {
   const params = useParams();
   const kostId = params.kostId as string;
 
-  const { data: roomsData, isLoading: roomsLoading } = useSWR('/api/data/Master_Kamar', fetcher);
-  const { data: tenantsData, isLoading: tenantsLoading } = useSWR('/api/data/Master_Penghuni', fetcher);
-  const { data: rentalsData, isLoading: rentalsLoading } = useSWR('/api/data/Transaksi_Sewa', fetcher);
+  const {
+    rooms,
+    tenants,
+    rentals,
+    allRooms,
+    allTenants,
+    isLoading,
+    editingId,
+    editFormData,
+    isAdding,
+    actionLoading,
+    setEditFormData,
+    handleEdit,
+    cancelEdit,
+    startAdding,
+    handleSave,
+    handleDelete
+  } = useManagement(kostId);
 
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editFormData, setEditFormData] = useState<any>({});
-  const [isAdding, setIsAdding] = useState(false);
-  const [actionLoading, setActionLoading] = useState<string | null>(null);
-
-  const isInitialLoading = !roomsData || !tenantsData || !rentalsData;
-
-  if (isInitialLoading) {
+  if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
-        <div className="flex flex-col items-center gap-3">
-          <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
-          <p className="text-zinc-500 text-sm font-medium">Inisialisasi Data...</p>
+      <div className="min-h-screen bg-[#f8fafc] flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="w-10 h-10 text-slate-900 animate-spin" />
+          <p className="text-slate-400 text-xs font-black uppercase tracking-[0.2em] animate-pulse">Inisialisasi Sistem...</p>
         </div>
       </div>
     );
   }
 
-  const allRooms = roomsData?.data || [];
-  const allTenants = tenantsData?.data || [];
-  const allRentals = rentalsData?.data || [];
-
-  // Filter data by current Kost
-  const rooms = allRooms.filter((r: any) => r.ID_Kost === kostId);
-  const tenants = allTenants.filter((t: any) => t.ID_Kost === kostId || !t.ID_Kost); // Allow older ones if they don't have ID_Kost yet
-  const rentals = allRentals.filter((r: any) => {
-    const room = allRooms.find((rm: any) => rm.ID_Kamar === r.ID_Kamar);
-    return room?.ID_Kost === kostId || r.ID_Kost === kostId;
-  });
-
-  const formatPhone = (phone: string) => {
-    if (!phone) return '';
-    let cleaned = String(phone).replace(/\D/g, '');
-    if (cleaned.startsWith('0')) return '62' + cleaned.substring(1);
-    return cleaned;
-  };
-
-  const handleEdit = (item: any, idField: string) => {
-    setEditingId(item[idField]);
-    setEditFormData(item);
-    setIsAdding(false);
-  };
-
-  const handleSave = async (sheetName: string, idField: string) => {
-    setActionLoading('save');
-    try {
-      const method = isAdding ? 'POST' : 'PUT';
-      let payload = { ...editFormData };
-
-      // Auto inject ID_Kost
-      payload.ID_Kost = kostId;
-
-      if (isAdding && !payload[idField]) {
-        payload[idField] = `${sheetName[0]}${Date.now()}`;
-      }
-
-      // Auto-format phone numbers if present
-      if (payload.No_HP) payload.No_HP = formatPhone(payload.No_HP);
-      if (payload.Kontak_Darurat) payload.Kontak_Darurat = formatPhone(payload.Kontak_Darurat);
-
-      const body = isAdding ? payload : { idField, idValue: editingId, ...payload };
-
-      const res = await fetch(`/api/data/${sheetName}`, {
-        method,
-        body: JSON.stringify(body),
-      });
-
-      const result = await res.json();
-
-      if (res.ok) {
-        toast.success('Data saved successfully');
-        mutate(`/api/data/${sheetName}`);
-        setEditingId(null);
-        setIsAdding(false);
-        setEditFormData({});
-      } else {
-        toast.error(result.message || 'Failed to save');
-      }
-    } catch (error: any) {
-      toast.error(error.message || 'Error saving data');
-    } finally {
-      setActionLoading(null);
-    }
-  };
-
-  const handleDelete = async (sheetName: string, idField: string, idValue: string) => {
-    if (!confirm('Hapus data ini?')) return;
-    setActionLoading(`delete-${idValue}`);
-    try {
-      const res = await fetch(`/api/data/${sheetName}?idField=${idField}&idValue=${idValue}`, {
-        method: 'DELETE',
-      });
-
-      if (res.ok) {
-        toast.success('Data deleted');
-        mutate(`/api/data/${sheetName}`);
-      } else {
-        toast.error('Failed to delete');
-      }
-    } catch (error) {
-      toast.error('Error deleting data');
-    } finally {
-      setActionLoading(null);
-    }
-  };
-
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white">
+    <div className="min-h-screen bg-[#f8fafc] text-slate-900 flex flex-col font-sans">
       <Header />
 
-      <main className="p-6 max-w-[1400px] mx-auto space-y-8">
-        <div className="flex flex-col gap-1">
-          <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-white to-zinc-500 bg-clip-text text-transparent">Management System</h1>
-          <p className="text-zinc-500 text-sm">Kelola data kamar, penghuni, dan transaksi untuk kost ini.</p>
+      <main className="p-6 md:p-12 max-w-[1400px] mx-auto w-full space-y-12">
+        <div className="flex flex-col gap-2">
+          <h1 className="text-4xl font-black tracking-tighter text-slate-900">Sistem Manajemen</h1>
+          <p className="text-slate-400 text-sm font-bold uppercase tracking-widest flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
+            Pusat Kendali Data Properti
+          </p>
         </div>
 
-        <Tabs defaultValue="rooms" className="w-full space-y-6">
-          <TabsList className="bg-zinc-900/50 border-zinc-800 p-1">
-            <TabsTrigger value="rooms" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white px-8 transition-all">Rooms</TabsTrigger>
-            <TabsTrigger value="tenants" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white px-8 transition-all">Tenants</TabsTrigger>
-            <TabsTrigger value="rentals" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white px-8 transition-all">Rentals</TabsTrigger>
+        <Tabs defaultValue="rooms" className="w-full space-y-10">
+          <TabsList className="bg-slate-100 p-1.5 rounded-2xl h-14 border border-slate-200">
+            <TabsTrigger value="rooms" className="rounded-xl px-10 h-full text-[11px] font-black uppercase tracking-widest data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm transition-all">Kamar</TabsTrigger>
+            <TabsTrigger value="tenants" className="rounded-xl px-10 h-full text-[11px] font-black uppercase tracking-widest data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm transition-all">Penghuni</TabsTrigger>
+            <TabsTrigger value="rentals" className="rounded-xl px-10 h-full text-[11px] font-black uppercase tracking-widest data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm transition-all">Sewa</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="rooms">
-            <TabContentWrapper>
-              <Card className="bg-white/5 border-white/10 backdrop-blur-xl overflow-hidden">
-                <CardHeader className="flex flex-row items-center justify-between border-b border-white/5 pb-4">
-                  <CardTitle className="text-lg font-semibold text-white">Master Kamar</CardTitle>
-                  <Button size="sm" onClick={() => { setIsAdding(true); setEditFormData({ Lantai: '1' }); setEditingId('new'); }} className="bg-blue-600 hover:bg-blue-700 transition-all active:scale-95">
-                    <Plus className="w-4 h-4 mr-2" /> Add Kamar
-                  </Button>
-                </CardHeader>
-                <CardContent className="p-0">
-                  <Table>
-                    <TableHeader className="bg-white/5">
-                      <TableRow className="border-white/10">
-                        <TableHead className="text-zinc-400">No. Kamar</TableHead>
-                        <TableHead className="text-zinc-400">Lantai</TableHead>
-                        <TableHead className="text-zinc-400">Harga Sewa</TableHead>
-                        <TableHead className="text-zinc-400 text-right pr-6">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {isAdding && editingId === 'new' && (
-                        <TableRow className="border-white/10 bg-blue-500/5">
-                          <TableCell><Input value={editFormData.No_Kamar || ''} onChange={e => setEditFormData({ ...editFormData, No_Kamar: e.target.value })} className="bg-zinc-900 border-zinc-800 h-9" placeholder="A1" /></TableCell>
-                          <TableCell><Input type="number" value={editFormData.Lantai || '1'} onChange={e => setEditFormData({ ...editFormData, Lantai: e.target.value })} className="bg-zinc-900 border-zinc-800 h-9" /></TableCell>
-                          <TableCell><Input type="number" value={editFormData.Harga_Sewa || ''} onChange={e => setEditFormData({ ...editFormData, Harga_Sewa: e.target.value })} className="bg-zinc-900 border-zinc-800 h-9" placeholder="1500000" /></TableCell>
-                          <TableCell className="text-right pr-6">
-                            <div className="flex justify-end gap-2">
-                              <Button size="sm" disabled={actionLoading === 'save'} onClick={() => handleSave('Master_Kamar', 'ID_Kamar')} className="bg-green-600 h-8 px-3 transition-all active:scale-95">
-                                {actionLoading === 'save' ? <Loader2 className="w-3 h-3 animate-spin mr-2" /> : <Save className="w-3 h-3 mr-2" />} Simpan
-                              </Button>
-                              <Button size="icon" variant="ghost" onClick={() => setIsAdding(false)} className="h-8 w-8"><X className="w-4 h-4" /></Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      )}
-                      {rooms.map((room: any) => (
-                        <TableRow key={room.ID_Kamar} className="border-white/10 hover:bg-white/5 transition-colors">
-                          <TableCell className="text-white font-bold">
-                            {editingId === room.ID_Kamar ? <Input value={editFormData.No_Kamar || ''} onChange={e => setEditFormData({ ...editFormData, No_Kamar: e.target.value })} className="bg-zinc-900 border-zinc-800 h-8" /> : room.No_Kamar}
-                          </TableCell>
-                          <TableCell className="text-zinc-400">
-                            {editingId === room.ID_Kamar ? <Input type="number" value={editFormData.Lantai || ''} onChange={e => setEditFormData({ ...editFormData, Lantai: e.target.value })} className="bg-zinc-900 border-zinc-800 h-8" /> : room.Lantai}
-                          </TableCell>
-                          <TableCell className="text-zinc-400">
-                            {editingId === room.ID_Kamar ? <Input type="number" value={editFormData.Harga_Sewa || ''} onChange={e => setEditFormData({ ...editFormData, Harga_Sewa: e.target.value })} className="bg-zinc-900 border-zinc-800 h-8" /> : `Rp ${parseInt(room.Harga_Sewa).toLocaleString()}`}
-                          </TableCell>
-                          <TableCell className="text-right pr-6">
-                            <div className="flex justify-end gap-2">
-                              {editingId === room.ID_Kamar ? (
-                                <>
-                                  <Button size="sm" disabled={actionLoading === 'save'} onClick={() => handleSave('Master_Kamar', 'ID_Kamar')} className="bg-green-600 h-8 px-3">
-                                    {actionLoading === 'save' ? <Loader2 className="w-3 h-3 animate-spin mr-2" /> : <Save className="w-3 h-3 mr-2" />} Simpan
-                                  </Button>
-                                  <Button size="icon" variant="ghost" onClick={() => setEditingId(null)} className="h-8 w-8"><X className="w-4 h-4" /></Button>
-                                </>
-                              ) : (
-                                <>
-                                  <Button size="icon" variant="ghost" onClick={() => handleEdit(room, 'ID_Kamar')} className="h-8 w-8 text-zinc-400 hover:text-blue-400 transition-colors"><Pencil className="w-3.5 h-3.5" /></Button>
-                                  <Button size="icon" variant="ghost" disabled={actionLoading === `delete-${room.ID_Kamar}`} onClick={() => handleDelete('Master_Kamar', 'ID_Kamar', room.ID_Kamar)} className="h-8 w-8 text-zinc-400 hover:text-red-400 transition-colors">
-                                    {actionLoading === `delete-${room.ID_Kamar}` ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
-                                  </Button>
-                                </>
-                              )}
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </CardContent>
-              </Card>
+          <AnimatePresence mode="wait">
+            <TabContentWrapper value="rooms">
+              <RoomManagement 
+                rooms={rooms}
+                editingId={editingId}
+                editFormData={editFormData}
+                isAdding={isAdding}
+                actionLoading={actionLoading}
+                onEdit={(room) => handleEdit(room, 'ID_Kamar')}
+                onSave={() => handleSave('Master_Kamar', 'ID_Kamar')}
+                onDelete={(id) => handleDelete('Master_Kamar', 'ID_Kamar', id)}
+                onCancel={cancelEdit}
+                onStartAdding={() => startAdding({ Lantai: '1' })}
+                setEditFormData={setEditFormData}
+              />
             </TabContentWrapper>
-          </TabsContent>
 
-          <TabsContent value="tenants">
-            <TabContentWrapper>
-              <Card className="bg-white/5 border-white/10 backdrop-blur-xl overflow-hidden">
-                <CardHeader className="flex flex-row items-center justify-between border-b border-white/5 pb-4">
-                  <CardTitle className="text-lg font-semibold text-white">Master Penghuni</CardTitle>
-                  <Button size="sm" onClick={() => { setIsAdding(true); setEditFormData({ Bawa_Mobil: 'Tidak' }); setEditingId('new'); }} className="bg-blue-600 hover:bg-blue-700 transition-all active:scale-95">
-                    <Plus className="w-4 h-4 mr-2" /> Add Penghuni
-                  </Button>
-                </CardHeader>
-                <CardContent className="p-0">
-                  <Table>
-                    <TableHeader className="bg-white/5">
-                      <TableRow className="border-white/10">
-                        <TableHead className="text-zinc-400">Nama</TableHead>
-                        <TableHead className="text-zinc-400">No. HP</TableHead>
-                        <TableHead className="text-zinc-400">Bawa Mobil</TableHead>
-                        <TableHead className="text-zinc-400">Kontak Darurat</TableHead>
-                        <TableHead className="text-zinc-400 text-right pr-6">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {isAdding && editingId === 'new' && (
-                        <TableRow className="border-white/10 bg-blue-500/5">
-                          <TableCell><Input value={editFormData.Nama || ''} onChange={e => setEditFormData({ ...editFormData, Nama: e.target.value })} className="bg-zinc-900 border-zinc-800 h-9" placeholder="Nama" /></TableCell>
-                          <TableCell><Input value={editFormData.No_HP || ''} onChange={e => setEditFormData({ ...editFormData, No_HP: e.target.value })} className="bg-zinc-900 border-zinc-800 h-9" placeholder="628xxxx" /></TableCell>
-                          <TableCell>
-                            <select
-                              value={editFormData.Bawa_Mobil || 'Tidak'}
-                              onChange={e => setEditFormData({ ...editFormData, Bawa_Mobil: e.target.value })}
-                              className="w-full bg-zinc-900 border-zinc-800 text-white p-2 rounded-md h-9 text-sm"
-                            >
-                              <option value="Tidak">Tidak</option>
-                              <option value="Ya">Ya</option>
-                            </select>
-                          </TableCell>
-                          <TableCell><Input value={editFormData.Kontak_Darurat || ''} onChange={e => setEditFormData({ ...editFormData, Kontak_Darurat: e.target.value })} className="bg-zinc-900 border-zinc-800 h-9" placeholder="628xxxx" /></TableCell>
-                          <TableCell className="text-right pr-6">
-                            <div className="flex justify-end gap-2">
-                              <Button size="sm" disabled={actionLoading === 'save'} onClick={() => handleSave('Master_Penghuni', 'ID_Penghuni')} className="bg-green-600 h-8 px-3 transition-all active:scale-95">
-                                {actionLoading === 'save' ? <Loader2 className="w-3 h-3 animate-spin mr-2" /> : <Save className="w-3 h-3 mr-2" />} Simpan
-                              </Button>
-                              <Button size="icon" variant="ghost" onClick={() => setIsAdding(false)} className="h-8 w-8"><X className="w-4 h-4" /></Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      )}
-                      {tenants.map((tenant: any) => (
-                        <TableRow key={tenant.ID_Penghuni} className="border-white/10 hover:bg-white/5 transition-colors">
-                          <TableCell className="text-white font-medium">
-                            {editingId === tenant.ID_Penghuni ? <Input value={editFormData.Nama || ''} onChange={e => setEditFormData({ ...editFormData, Nama: e.target.value })} className="bg-zinc-900 border-zinc-800 h-8" /> : tenant.Nama}
-                          </TableCell>
-                          <TableCell className="text-white">
-                            {editingId === tenant.ID_Penghuni ? <Input value={editFormData.No_HP || ''} onChange={e => setEditFormData({ ...editFormData, No_HP: e.target.value })} className="bg-zinc-900 border-zinc-800 h-8" /> : tenant.No_HP}
-                          </TableCell>
-                          <TableCell className="text-white">
-                            {editingId === tenant.ID_Penghuni ? (
-                              <select value={editFormData.Bawa_Mobil || ''} onChange={e => setEditFormData({ ...editFormData, Bawa_Mobil: e.target.value })} className="bg-zinc-900 border-zinc-800 text-white p-1 rounded h-8 text-xs">
-                                <option value="Tidak">Tidak</option>
-                                <option value="Ya">Ya</option>
-                              </select>
-                            ) : tenant.Bawa_Mobil}
-                          </TableCell>
-                          <TableCell className="text-white">
-                            {editingId === tenant.ID_Penghuni ? <Input value={editFormData.Kontak_Darurat || ''} onChange={e => setEditFormData({ ...editFormData, Kontak_Darurat: e.target.value })} className="bg-zinc-900 border-zinc-800 h-8" /> : tenant.Kontak_Darurat}
-                          </TableCell>
-                          <TableCell className="text-right pr-6">
-                            <div className="flex justify-end gap-2">
-                              {editingId === tenant.ID_Penghuni ? (
-                                <>
-                                  <Button size="sm" disabled={actionLoading === 'save'} onClick={() => handleSave('Master_Penghuni', 'ID_Penghuni')} className="bg-green-600 h-8 px-3">
-                                    {actionLoading === 'save' ? <Loader2 className="w-3 h-3 animate-spin mr-2" /> : <Save className="w-3 h-3 mr-2" />} Simpan
-                                  </Button>
-                                  <Button size="icon" variant="ghost" onClick={() => setEditingId(null)} className="h-8 w-8"><X className="w-4 h-4" /></Button>
-                                </>
-                              ) : (
-                                <>
-                                  <Button size="icon" variant="ghost" onClick={() => handleEdit(tenant, 'ID_Penghuni')} className="h-8 w-8 text-zinc-400 hover:text-blue-400 transition-colors"><Pencil className="w-3.5 h-3.5" /></Button>
-                                  <Button size="icon" variant="ghost" disabled={actionLoading === `delete-${tenant.ID_Penghuni}`} onClick={() => handleDelete('Master_Penghuni', 'ID_Penghuni', tenant.ID_Penghuni)} className="h-8 w-8 text-zinc-400 hover:text-red-400 transition-colors">
-                                    {actionLoading === `delete-${tenant.ID_Penghuni}` ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
-                                  </Button>
-                                </>
-                              )}
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </CardContent>
-              </Card>
+            <TabContentWrapper value="tenants">
+              <TenantManagement 
+                tenants={tenants}
+                editingId={editingId}
+                editFormData={editFormData}
+                isAdding={isAdding}
+                actionLoading={actionLoading}
+                onEdit={(tenant) => handleEdit(tenant, 'ID_Penghuni')}
+                onSave={() => handleSave('Master_Penghuni', 'ID_Penghuni')}
+                onDelete={(id) => handleDelete('Master_Penghuni', 'ID_Penghuni', id)}
+                onCancel={cancelEdit}
+                onStartAdding={() => startAdding({ Bawa_Mobil: 'Tidak' })}
+                setEditFormData={setEditFormData}
+              />
             </TabContentWrapper>
-          </TabsContent>
 
-          <TabsContent value="rentals">
-            <TabContentWrapper>
-              <Card className="bg-white/5 border-white/10 backdrop-blur-xl overflow-hidden">
-                <CardHeader className="flex flex-row items-center justify-between border-b border-white/5 pb-4">
-                  <CardTitle className="text-lg font-semibold text-white">Transaksi Sewa</CardTitle>
-                  <Button size="sm" onClick={() => { setIsAdding(true); setEditFormData({ Status_Aktif: 'TRUE', Tgl_Masuk: new Date().toISOString().split('T')[0], Tgl_DP: new Date().toISOString().split('T')[0], Periode_Sewa: '1', Nominal_Deposit: '0' }); setEditingId('new'); }} className="bg-blue-600 hover:bg-blue-700 transition-all active:scale-95">
-                    <Plus className="w-4 h-4 mr-2" /> Add Rental
-                  </Button>
-                </CardHeader>
-                <CardContent className="p-0">
-                  <Table>
-                    <TableHeader className="bg-white/5">
-                        <TableRow className="border-white/10">
-                          <TableHead className="text-zinc-400">Kamar</TableHead>
-                          <TableHead className="text-zinc-400">Penghuni</TableHead>
-                          <TableHead className="text-zinc-400">Tgl Masuk</TableHead>
-                          <TableHead className="text-zinc-400">Tgl DP</TableHead>
-                          <TableHead className="text-zinc-400">Periode</TableHead>
-                          <TableHead className="text-zinc-400">Deposit</TableHead>
-                          <TableHead className="text-zinc-400">Status</TableHead>
-                          <TableHead className="text-zinc-400 text-right pr-6">Actions</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {isAdding && editingId === 'new' && (
-                        <TableRow className="border-white/10 bg-blue-500/5">
-                          <TableCell>
-                            <select value={editFormData.ID_Kamar || ''} onChange={e => setEditFormData({ ...editFormData, ID_Kamar: e.target.value })} className="w-full bg-zinc-900 border-zinc-800 text-white p-2 rounded-md h-9 text-xs">
-                              <option value="">Kamar</option>
-                              {rooms.map((r: any) => <option key={r.ID_Kamar} value={r.ID_Kamar}>{r.No_Kamar}</option>)}
-                            </select>
-                          </TableCell>
-                          <TableCell>
-                            <select value={editFormData.ID_Penghuni || ''} onChange={e => setEditFormData({ ...editFormData, ID_Penghuni: e.target.value })} className="w-full bg-zinc-900 border-zinc-800 text-white p-2 rounded-md h-9 text-xs">
-                              <option value="">Penghuni</option>
-                              {tenants.map((t: any) => <option key={t.ID_Penghuni} value={t.ID_Penghuni}>{t.Nama}</option>)}
-                            </select>
-                          </TableCell>
-                          <TableCell><Input type="date" value={editFormData.Tgl_Masuk || ''} onChange={e => setEditFormData({ ...editFormData, Tgl_Masuk: e.target.value })} className="bg-zinc-900 border-zinc-800 h-9" /></TableCell>
-                          <TableCell><Input type="date" value={editFormData.Tgl_DP || ''} onChange={e => setEditFormData({ ...editFormData, Tgl_DP: e.target.value })} className="bg-zinc-900 border-zinc-800 h-9" /></TableCell>
-                          <TableCell><Input type="number" value={editFormData.Periode_Sewa || '1'} onChange={e => setEditFormData({ ...editFormData, Periode_Sewa: e.target.value })} className="bg-zinc-900 border-zinc-800 h-9" /></TableCell>
-                          <TableCell><Input type="number" value={editFormData.Nominal_Deposit || ''} onChange={e => setEditFormData({ ...editFormData, Nominal_Deposit: e.target.value })} className="bg-zinc-900 border-zinc-800 h-9" placeholder="1500000" /></TableCell>
-                          <TableCell>
-                            <select value={editFormData.Status_Aktif || 'TRUE'} onChange={e => setEditFormData({ ...editFormData, Status_Aktif: e.target.value })} className="bg-zinc-900 border-zinc-800 text-white p-2 rounded-md h-9 text-xs">
-                              <option value="TRUE">AKTIF</option>
-                              <option value="FALSE">SELESAI</option>
-                            </select>
-                          </TableCell>
-                          <TableCell className="text-right pr-6">
-                            <div className="flex justify-end gap-2">
-                              <Button size="sm" disabled={actionLoading === 'save'} onClick={() => handleSave('Transaksi_Sewa', 'ID_Sewa')} className="bg-green-600 h-8 px-3 transition-all active:scale-95">
-                                {actionLoading === 'save' ? <Loader2 className="w-3 h-3 animate-spin mr-2" /> : <Save className="w-3 h-3 mr-2" />} Simpan
-                              </Button>
-                              <Button size="icon" variant="ghost" onClick={() => setIsAdding(false)} className="h-8 w-8"><X className="w-4 h-4" /></Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      )}
-                      {rentals.map((rental: any) => {
-                        const room = rooms.find((r: any) => r.ID_Kamar === rental.ID_Kamar);
-                        const tenant = tenants.find((t: any) => t.ID_Penghuni === rental.ID_Penghuni);
-                        return (
-                          <TableRow key={rental.ID_Sewa} className="border-white/10 hover:bg-white/5 transition-colors text-sm">
-                            <TableCell className="text-white font-bold">{room?.No_Kamar || rental.ID_Kamar}</TableCell>
-                            <TableCell className="text-white">{tenant?.Nama || rental.ID_Penghuni}</TableCell>
-                            <TableCell className="text-zinc-400 text-xs">{rental.Tgl_Masuk}</TableCell>
-                            <TableCell className="text-zinc-500 text-xs">{rental.Tgl_DP}</TableCell>
-                            <TableCell className="text-zinc-400">{rental.Periode_Sewa} Bln</TableCell>
-                            <TableCell className="text-zinc-400 text-xs">Rp {parseInt(rental.Nominal_Deposit || '0').toLocaleString()}</TableCell>
-                            <TableCell>
-                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${rental.Status_Aktif === 'TRUE' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-zinc-500/20 text-zinc-500'}`}>
-                                {rental.Status_Aktif === 'TRUE' ? 'AKTIF' : 'SELESAI'}
-                              </span>
-                            </TableCell>
-                            <TableCell className="text-right pr-6">
-                              <Button size="icon" variant="ghost" disabled={actionLoading === `delete-${rental.ID_Sewa}`} onClick={() => handleDelete('Transaksi_Sewa', 'ID_Sewa', rental.ID_Sewa)} className="h-8 w-8 text-zinc-400 hover:text-red-400 transition-colors">
-                                {actionLoading === `delete-${rental.ID_Sewa}` ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
-                              </Button>
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
-                </CardContent>
-              </Card>
+            <TabContentWrapper value="rentals">
+              <RentalManagement 
+                rentals={rentals}
+                rooms={allRooms}
+                tenants={allTenants}
+                editingId={editingId}
+                editFormData={editFormData}
+                isAdding={isAdding}
+                actionLoading={actionLoading}
+                onEdit={(rental) => handleEdit(rental, 'ID_Sewa')}
+                onSave={() => handleSave('Transaksi_Sewa', 'ID_Sewa')}
+                onDelete={(id) => handleDelete('Transaksi_Sewa', 'ID_Sewa', id)}
+                onCancel={cancelEdit}
+                onStartAdding={(data) => startAdding(data)}
+                setEditFormData={setEditFormData}
+              />
             </TabContentWrapper>
-          </TabsContent>
+          </AnimatePresence>
         </Tabs>
       </main>
     </div>
