@@ -182,13 +182,13 @@ export default function RentalManagement({
                     {/* Deposit */}
                     <TableCell className="font-medium text-muted-foreground text-xs">
                       {isEditing
-                        ? <Input type="number" value={editFormData.Nominal_Deposit || '0'} onChange={set('Nominal_Deposit')} className="h-9 text-xs p-1 w-28 rounded-lg" />
+                        ? <Input type="number" value={editFormData.Nominal_Deposit || '0'} onChange={e => set('Nominal_Deposit')(e.target.value)} className="h-9 text-xs p-1 w-28 rounded-lg" />
                         : `Rp ${parseInt(rental.Nominal_Deposit || '0').toLocaleString('id-ID')}`}
                     </TableCell>
                     {/* Periode */}
                     <TableCell className="font-medium text-muted-foreground">
                       {isEditing
-                        ? <Input type="number" value={editFormData.Periode_Sewa || ''} onChange={set('Periode_Sewa')} className="h-9 text-xs p-1 w-16 rounded-lg" />
+                        ? <Input type="number" value={editFormData.Periode_Sewa || ''} onChange={e => set('Periode_Sewa')(e.target.value)} className="h-9 text-xs p-1 w-16 rounded-lg" />
                         : `${rental.Periode_Sewa} Bln`}
                     </TableCell>
                     {/* Status */}

@@ -1,10 +1,14 @@
-export default function KostLayout({
+import React from 'react';
+
+export default async function KostLayout({
   children,
   params,
 }: {
   children: React.ReactNode;
-  params: { kostId: string };
+  params: Promise<{ kostId: string }>;
 }) {
+  const { kostId } = await params;
+  
   return (
     <div className="min-h-screen bg-[#f8fafc] text-slate-900">
       {children}

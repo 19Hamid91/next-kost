@@ -18,7 +18,7 @@ async function getSheetsClient() {
 
 export async function getSheetData(sheetName: string) {
   const sheets = await getSheetsClient();
-  const range = `${sheetName}!A1:Z1000`;
+  const range = `${sheetName}!A1:Z5000`;
   
   const response = await sheets.spreadsheets.values.get({
     spreadsheetId: process.env.GOOGLE_SHEET_ID,
@@ -73,7 +73,7 @@ export async function appendSheetData(sheetName: string, data: any) {
 
 export async function updateSheetData(sheetName: string, idField: string, idValue: string, data: any) {
   const sheets = await getSheetsClient();
-  const range = `${sheetName}!A1:Z1000`;
+  const range = `${sheetName}!A1:Z5000`;
   
   const response = await sheets.spreadsheets.values.get({
     spreadsheetId: process.env.GOOGLE_SHEET_ID,
@@ -115,7 +115,7 @@ export async function updateSheetData(sheetName: string, idField: string, idValu
 
 export async function deleteSheetData(sheetName: string, idField: string, idValue: string) {
   const sheets = await getSheetsClient();
-  const range = `${sheetName}!A1:Z1000`;
+  const range = `${sheetName}!A1:Z5000`;
   
   const response = await sheets.spreadsheets.values.get({
     spreadsheetId: process.env.GOOGLE_SHEET_ID,
