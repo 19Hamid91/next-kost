@@ -158,3 +158,113 @@ export async function deleteSheetData(sheetName: string, idField: string, idValu
     },
   });
 }
+
+// ─── Batch Operations ────────────────────────────────────────────────────────
+
+/**
+ * Atomically appends multiple rows to a sheet.
+ * On partial failure, rolls back by deleting already-inserted rows.
+ */
+export async function batchAppendSheetData(sheetName: string, rows: any[][]): Promise<{ insertedCount: number }> {
+  const sheets = await getSheetsClient();
+
+  // Get existing row count before insert (for rollback)
+  const beforeResponse = await sheets.spreadsheets.values.get({
+    spreadsheetId: process.env.GOOGLE_SHEET_ID,
+    range: `${sheetName}!A1:A`,
+  });
+  const existingRowCount = beforeResponse.data.values?.length ?? 1; // includes header
+
+  try {
+    await sheets.spreadsheets.values.append({
+      spreadsheetId: process.env.GOOGLE_SHEET_ID,
+      range: `${sheetName}!A1`,
+      valueInputOption: 'USER_ENTERED',
+      requestBody: { values: rows },
+    });
+    return { insertedCount: rows.length };
+  } catch (error) {
+    // Rollback: delete rows that were partially inserted
+    const spreadsheet = await sheets.spreadsheets.get({
+      spreadsheetId: process.env.GOOGLE_SHEET_ID,
+    });
+    const sheet = spreadsheet.data.sheets?.find(s => s.properties?.title === sheetName);
+    if (sheet) {
+      const afterResponse = await sheets.spreadsheets.values.get({
+        spreadsheetId: process.env.GOOGLE_SHEET_ID,
+        range: `${sheetName}!A1:A`,
+      });
+      const afterCount = afterResponse.data.values?.length ?? existingRowCount;
+      const insertedRows = afterCount - existingRowCount;
+      if (insertedRows > 0) {
+        await sheets.spreadsheets.batchUpdate({
+          spreadsheetId: process.env.GOOGLE_SHEET_ID,
+          requestBody: {
+            requests: [{
+              deleteDimension: {
+                range: {
+                  sheetId: sheet.properties?.sheetId,
+                  dimension: 'ROWS',
+                  startIndex: existingRowCount, // 0-indexed, after header+existing
+                  endIndex: existingRowCount + insertedRows,
+                },
+              },
+            }],
+          },
+        });
+      }
+    }
+    throw error;
+  }
+}
+
+/**
+ * Atomically updates multiple rows by ID using batchUpdate.
+ * Updates are applied in a single Sheets API call.
+ */
+export async function batchUpdateSheetData(
+  sheetName: string,
+  updates: { idField: string; idValue: string; fields: Record<string, string> }[]
+): Promise<{ updatedCount: number }> {
+  const sheets = await getSheetsClient();
+  const range = `${sheetName}!A1:Z5000`;
+
+  const response = await sheets.spreadsheets.values.get({
+    spreadsheetId: process.env.GOOGLE_SHEET_ID,
+    range,
+  });
+
+  const allRows = response.data.values;
+  if (!allRows) throw new Error('Sheet is empty');
+
+  const headers = allRows[0];
+  const valueRanges: any[] = [];
+
+  for (const update of updates) {
+    const idIndex = headers.indexOf(update.idField);
+    if (idIndex === -1) throw new Error(`idField "${update.idField}" not found in headers`);
+
+    const rowIndex = allRows.findIndex((row, idx) => idx > 0 && row[idIndex] === update.idValue);
+    if (rowIndex === -1) throw new Error(`Row with ${update.idField}=${update.idValue} not found`);
+
+    const updatedRow = headers.map((header: string, colIdx: number) => {
+      if (update.fields[header] !== undefined) return update.fields[header];
+      return allRows[rowIndex][colIdx] ?? '';
+    });
+
+    valueRanges.push({
+      range: `${sheetName}!A${rowIndex + 1}`,
+      values: [updatedRow],
+    });
+  }
+
+  await sheets.spreadsheets.values.batchUpdate({
+    spreadsheetId: process.env.GOOGLE_SHEET_ID,
+    requestBody: {
+      valueInputOption: 'USER_ENTERED',
+      data: valueRanges,
+    },
+  });
+
+  return { updatedCount: updates.length };
+}

@@ -1,25 +1,26 @@
 'use client';
 
 import {
-  Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter, SheetClose
+  Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter,
 } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import {
   User, Phone, Car, Clock, AlertTriangle, DoorOpen, Search,
-  UserPlus, RotateCcw, Loader2, CheckCircle, X
+  UserPlus, RotateCcw, Loader2, CheckCircle, MessageCircle, CalendarClock,
 } from 'lucide-react';
-import { addMonths, isAfter, differenceInDays, format, parseISO } from 'date-fns';
+import { isAfter, differenceInDays, format, parseISO } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { useTenantSheet } from '@/hooks/useTenantSheet';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import { useState } from 'react';
+import { calculateDueDate, parseDurasiUnit, resolveStatusSewa } from '@/lib/dateUtils';
 
 interface TenantSheetProps {
   room: any;
@@ -29,7 +30,7 @@ interface TenantSheetProps {
   onClose: () => void;
 }
 
-// ─── Sub-components ────────────────────────────────────────────────
+// ── Sub-components ─────────────────────────────────────────────────
 
 function InfoRow({ icon: Icon, label, value, iconClass = '' }: { icon: any; label: string; value: string; iconClass?: string }) {
   return (
@@ -58,7 +59,7 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
   return <h3 className="text-[9px] font-bold uppercase tracking-[0.2em] text-muted-foreground/60 ml-1">{children}</h3>;
 }
 
-// ─── Main Component ─────────────────────────────────────────────────
+// ── Main Component ──────────────────────────────────────────────────
 
 export default function TenantSheet({ room, tenant, rental, isOpen, onClose }: TenantSheetProps) {
   const [showCheckoutConfirm, setShowCheckoutConfirm] = useState(false);
@@ -69,15 +70,19 @@ export default function TenantSheet({ room, tenant, rental, isOpen, onClose }: T
     renewMonths, setRenewMonths,
     sewaForm, setSewaForm,
     allTenants,
-    handleSewa, handleCheckout, handleRenew,
+    handleSewa, handleBooking, handleCheckout, handleActivateBooking, handleRenew,
   } = useTenantSheet(room, tenant, rental, isOpen, onClose);
 
-  // ── Rental status calculation ──
+  const statusSewa = resolveStatusSewa(rental);
+  const isBooked = statusSewa === 'BOOKING';
+
+  // Rental status calc
   const rentalStatus = (() => {
-    if (!rental?.Tgl_Masuk) return null;
+    if (!rental?.Tgl_Masuk || statusSewa !== 'AKTIF') return null;
     const tglMasuk = parseISO(rental.Tgl_Masuk);
     const periode = parseInt(rental.Periode_Sewa) || 1;
-    const tglJatuhTempo = addMonths(tglMasuk, periode);
+    const unit = parseDurasiUnit(rental.Unit_Durasi);
+    const tglJatuhTempo = calculateDueDate(tglMasuk, periode, unit);
     return {
       tglJatuhTempo,
       isOverdue: isAfter(new Date(), tglJatuhTempo),
@@ -85,10 +90,22 @@ export default function TenantSheet({ room, tenant, rental, isOpen, onClose }: T
     };
   })();
 
-  const getPeriodeLabel = (periode: string) => {
-    const map: Record<string, string> = { '1': 'Bulanan', '3': '3 Bulan', '6': '6 Bulan', '12': 'Tahunan' };
-    return map[periode] || `${periode} Bulan`;
+  const getPeriodeLabel = (periode: string, unit?: string) => {
+    const unitLabel = unit || 'Bulan';
+    return `${periode} ${unitLabel}`;
   };
+
+  // WhatsApp reminder URL
+  const waReminderUrl = (() => {
+    if (!tenant?.No_HP || !rentalStatus) return null;
+    const namaEncoded = encodeURIComponent(tenant.Nama || '');
+    const noKamar = encodeURIComponent(room?.No_Kamar || '');
+    const tglTempo = rentalStatus.tglJatuhTempo
+      ? encodeURIComponent(format(rentalStatus.tglJatuhTempo, 'd MMMM yyyy', { locale: localeId }))
+      : '';
+    const msg = `Halo%20${namaEncoded},%20mengingatkan%20sewa%20kamar%20${noKamar}%20akan%20berakhir%20pada%20${tglTempo}.%20Terima%20kasih!`;
+    return `https://wa.me/${tenant.No_HP}?text=${msg}`;
+  })();
 
   return (
     <Sheet open={isOpen} onOpenChange={onClose}>
@@ -100,26 +117,56 @@ export default function TenantSheet({ room, tenant, rental, isOpen, onClose }: T
 
           <SheetHeader className="relative z-10 text-left">
             <div className="flex items-center gap-5">
-              <div className="w-16 h-16 rounded-[1.5rem] bg-primary shadow-xl shadow-orange-500/10 flex items-center justify-center">
-                <DoorOpen className="w-8 h-8 text-primary-foreground" />
+              <div className={cn(
+                'w-16 h-16 rounded-[1.5rem] shadow-xl flex items-center justify-center',
+                isBooked ? 'bg-amber-500 shadow-amber-500/10' : 'bg-primary shadow-orange-500/10'
+              )}>
+                {isBooked ? <CalendarClock className="w-8 h-8 text-white" /> : <DoorOpen className="w-8 h-8 text-primary-foreground" />}
               </div>
               <div>
                 <SheetTitle className="text-foreground text-3xl font-bold tracking-tight">Unit {room?.No_Kamar}</SheetTitle>
                 <SheetDescription className="text-muted-foreground text-xs font-semibold uppercase tracking-widest mt-1.5 flex items-center gap-2">
-                  <span className={cn("w-2 h-2 rounded-full", tenant ? "bg-emerald-500" : "bg-orange-500")} />
+                  <span className={cn(
+                    'w-2 h-2 rounded-full',
+                    isBooked ? 'bg-amber-500' : tenant ? 'bg-blue-500' : 'bg-emerald-500'
+                  )} />
                   {mode === 'renew' ? 'Perpanjang Kontrak'
+                    : isBooked ? 'Kamar Ter-Booking'
                     : tenant ? 'Penghuni Aktif'
-                      : 'Kamar Kosong'}
+                    : 'Kamar Kosong'}
                 </SheetDescription>
               </div>
             </div>
 
-            {/* Status banner — hanya di mode view */}
-            {tenant && rentalStatus && mode === 'view' && (
+            {/* BOOKING status banner */}
+            {isBooked && mode === 'view' && (
+              <div className="mt-8 p-5 rounded-2xl bg-amber-50 border border-amber-200 flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center">
+                    <CalendarClock className="w-5 h-5 text-amber-600" />
+                  </div>
+                  <div className="flex flex-col gap-0.5">
+                    <p className="text-[9px] font-bold uppercase tracking-widest text-amber-600 mb-0 leading-tight">Status Booking</p>
+                    <p className="text-sm font-bold text-foreground mb-0 leading-tight">DP Dibayar — Belum Masuk</p>
+                  </div>
+                </div>
+                {rental?.Tgl_Masuk && (
+                  <div className="text-right flex flex-col gap-0.5">
+                    <p className="text-[9px] font-bold uppercase tracking-widest text-amber-600 mb-0 leading-tight">Check-in</p>
+                    <p className="text-sm font-bold text-foreground mb-0 leading-tight">
+                      {format(parseISO(rental.Tgl_Masuk), 'd MMM', { locale: localeId })}
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* AKTIF status banner */}
+            {tenant && rentalStatus && mode === 'view' && !isBooked && (
               <div className={cn(
                 'mt-8 p-5 rounded-2xl flex items-center justify-between border transition-all',
                 rentalStatus.isOverdue
-                  ? 'bg-destructive border-destructive/20 text-destructive-foreground shadow-lg shadow-destructive/10'
+                  ? 'bg-rose-500 border-rose-200 text-white shadow-lg shadow-rose-500/10'
                   : 'bg-white border-border text-foreground shadow-soft'
               )}>
                 <div className="flex items-center gap-4">
@@ -145,15 +192,41 @@ export default function TenantSheet({ room, tenant, rental, isOpen, onClose }: T
         {/* ── Body ── */}
         <div className="flex-1 overflow-y-auto p-10 space-y-10">
 
-          {/* ── VIEW MODE: Info penghuni & kontrak ── */}
-          {tenant && mode === 'view' && (
+          {/* VIEW MODE — Booking */}
+          {isBooked && mode === 'view' && (
+            <>
+              <section className="space-y-4">
+                <SectionTitle>Data Calon Penghuni</SectionTitle>
+                <div className="grid gap-3">
+                  <InfoRow icon={User} label="Nama Lengkap" value={tenant?.Nama || '—'} />
+                  <InfoRow icon={Phone} label="Nomor WhatsApp" value={tenant?.No_HP || '—'} />
+                  <InfoRow icon={Car} label="Kendaraan" value={tenant?.Bawa_Mobil === 'Ya' ? 'Mobil' : '—'} />
+                  {tenant?.Kontak_Darurat && (
+                    <InfoRow icon={Phone} label="Kontak Darurat" value={tenant.Kontak_Darurat} iconClass="text-destructive" />
+                  )}
+                </div>
+              </section>
+              <section className="space-y-4">
+                <SectionTitle>Detail Booking</SectionTitle>
+                <div className="grid grid-cols-2 gap-3">
+                  <ContractCard label="Check-in" value={rental?.Tgl_Masuk ? format(parseISO(rental.Tgl_Masuk), 'd MMM yyyy', { locale: localeId }) : '—'} />
+                  <ContractCard label="Tgl. DP" value={rental?.Tgl_DP ? format(parseISO(rental.Tgl_DP), 'd MMM yyyy', { locale: localeId }) : '—'} />
+                  <ContractCard label="Periode" value={getPeriodeLabel(rental?.Periode_Sewa, rental?.Unit_Durasi)} />
+                  <ContractCard label="Deposit" value={`Rp ${parseInt(rental?.Nominal_Deposit || '0').toLocaleString('id-ID')}`} />
+                </div>
+              </section>
+            </>
+          )}
+
+          {/* VIEW MODE — Active tenant */}
+          {tenant && mode === 'view' && !isBooked && (
             <>
               <section className="space-y-4">
                 <SectionTitle>Data Penghuni</SectionTitle>
                 <div className="grid gap-3">
                   <InfoRow icon={User} label="Nama Lengkap" value={tenant.Nama} />
                   <InfoRow icon={Phone} label="Nomor WhatsApp" value={tenant.No_HP} />
-                  <InfoRow icon={Car} label="Kendaraan" value={tenant.Bawa_Mobil === 'Ya' ? 'Mobil' : '-'} />
+                  <InfoRow icon={Car} label="Kendaraan" value={tenant.Bawa_Mobil === 'Ya' ? 'Mobil' : '—'} />
                   {tenant.Kontak_Darurat && (
                     <InfoRow icon={Phone} label="Kontak Darurat" value={tenant.Kontak_Darurat} iconClass="text-destructive" />
                   )}
@@ -163,19 +236,35 @@ export default function TenantSheet({ room, tenant, rental, isOpen, onClose }: T
               <section className="space-y-4">
                 <SectionTitle>Detail Kontrak</SectionTitle>
                 <div className="grid grid-cols-2 gap-3">
-                  <ContractCard label="Mulai Sewa" value={rental?.Tgl_Masuk ? format(parseISO(rental.Tgl_Masuk), 'd MMM yyyy', { locale: localeId }) : '-'} />
-                  <ContractCard label="Jatuh Tempo" value={rentalStatus ? format(rentalStatus.tglJatuhTempo, 'd MMM yyyy', { locale: localeId }) : '-'} dark />
-                  <ContractCard label="Periode" value={getPeriodeLabel(rental?.Periode_Sewa)} />
-                  <ContractCard label="Tgl. Bayar DP" value={rental?.Tgl_DP ? format(parseISO(rental.Tgl_DP), 'd MMM yyyy', { locale: localeId }) : '-'} />
+                  <ContractCard label="Mulai Sewa" value={rental?.Tgl_Masuk ? format(parseISO(rental.Tgl_Masuk), 'd MMM yyyy', { locale: localeId }) : '—'} />
+                  <ContractCard label="Jatuh Tempo" value={rentalStatus ? format(rentalStatus.tglJatuhTempo, 'd MMM yyyy', { locale: localeId }) : '—'} dark />
+                  <ContractCard label="Periode" value={getPeriodeLabel(rental?.Periode_Sewa, rental?.Unit_Durasi)} />
+                  <ContractCard label="Tgl. Bayar DP" value={rental?.Tgl_DP ? format(parseISO(rental.Tgl_DP), 'd MMM yyyy', { locale: localeId }) : '—'} />
                   <div className="col-span-2">
                     <ContractCard label="Nominal Deposit" value={`Rp ${parseInt(rental?.Nominal_Deposit || '0').toLocaleString('id-ID')}`} />
                   </div>
                 </div>
               </section>
+
+              {/* WA Reminder button */}
+              {rentalStatus && (rentalStatus.isOverdue || rentalStatus.sisaHari <= 7) && waReminderUrl && (
+                <section>
+                  <a href={waReminderUrl} target="_blank" rel="noopener noreferrer">
+                    <Button
+                      id="btn-wa-remind"
+                      variant="outline"
+                      className="w-full h-12 rounded-2xl border-emerald-200 hover:border-emerald-400 hover:bg-emerald-50 text-emerald-700 font-bold flex items-center gap-2"
+                    >
+                      <MessageCircle className="w-4 h-4" />
+                      Ingatkan via WhatsApp
+                    </Button>
+                  </a>
+                </section>
+              )}
             </>
           )}
 
-          {/* ── SEWA MODE: Form sewa kamar baru ── */}
+          {/* SEWA MODE */}
           {mode === 'sewa' && (
             <>
               <section className="space-y-5">
@@ -213,14 +302,11 @@ export default function TenantSheet({ room, tenant, rental, isOpen, onClose }: T
                   </button>
                 </div>
 
-                {/* Pilih penghuni lama */}
                 {tenantInputMode === 'existing' && (
                   <div className="space-y-2">
                     <Label className="text-muted-foreground text-xs ml-1">Pilih Penghuni</Label>
                     <Select value={selectedExistingTenantId} onValueChange={setSelectedExistingTenantId}>
-                      <SelectTrigger className="h-12 rounded-xl">
-                        <SelectValue placeholder="Cari penghuni..." />
-                      </SelectTrigger>
+                      <SelectTrigger className="h-12 rounded-xl"><SelectValue placeholder="Cari penghuni..." /></SelectTrigger>
                       <SelectContent>
                         {allTenants.map((t: any) => (
                           <SelectItem key={t.ID_Penghuni} value={t.ID_Penghuni}>
@@ -235,7 +321,6 @@ export default function TenantSheet({ room, tenant, rental, isOpen, onClose }: T
                   </div>
                 )}
 
-                {/* Form penghuni baru */}
                 {tenantInputMode === 'new' && (
                   <div className="space-y-4">
                     <div className="space-y-2">
@@ -254,11 +339,11 @@ export default function TenantSheet({ room, tenant, rental, isOpen, onClose }: T
                     </div>
                     <div className="space-y-2">
                       <Label className="text-muted-foreground text-xs ml-1">Bawa Kendaraan?</Label>
-                      <Select value={sewaForm.Bawa_Mobil} onValueChange={v => setSewaForm({ ...sewaForm, Bawa_Mobil: v })}>
+                      <Select value={sewaForm.Bawa_Mobil} onValueChange={val => setSewaForm({ ...sewaForm, Bawa_Mobil: val })}>
                         <SelectTrigger className="h-12 rounded-xl"><SelectValue /></SelectTrigger>
                         <SelectContent>
                           <SelectItem value="Tidak">Tidak</SelectItem>
-                          <SelectItem value="Ya">Ya</SelectItem>
+                          <SelectItem value="Ya">Ya (Mobil)</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -281,17 +366,24 @@ export default function TenantSheet({ room, tenant, rental, isOpen, onClose }: T
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label className="text-muted-foreground text-xs ml-1">Periode</Label>
-                      <Select value={sewaForm.Periode_Sewa} onValueChange={v => setSewaForm({ ...sewaForm, Periode_Sewa: v })}>
-                        <SelectTrigger className="h-12 rounded-xl"><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="1">1 Bulan</SelectItem>
-                          <SelectItem value="2">2 Bulan</SelectItem>
-                          <SelectItem value="3">3 Bulan</SelectItem>
-                          <SelectItem value="6">6 Bulan</SelectItem>
-                          <SelectItem value="12">12 Bulan (Tahunan)</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <Label className="text-muted-foreground text-xs ml-1">Durasi</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          type="number"
+                          min="1"
+                          value={sewaForm.Periode_Sewa}
+                          onChange={e => setSewaForm({ ...sewaForm, Periode_Sewa: e.target.value })}
+                          className="h-12 rounded-xl w-20"
+                        />
+                        <Select value={sewaForm.Unit_Durasi} onValueChange={val => setSewaForm({ ...sewaForm, Unit_Durasi: val })}>
+                          <SelectTrigger className="h-12 rounded-xl flex-1"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Hari">Hari</SelectItem>
+                            <SelectItem value="Minggu">Minggu</SelectItem>
+                            <SelectItem value="Bulan">Bulan</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
                     </div>
                     <div className="space-y-2">
                       <Label className="text-muted-foreground text-xs ml-1">Deposit (Rp)</Label>
@@ -303,34 +395,31 @@ export default function TenantSheet({ room, tenant, rental, isOpen, onClose }: T
             </>
           )}
 
-          {/* FIX #2 — RENEW MODE: Perpanjang sewa ── */}
+          {/* RENEW MODE */}
           {mode === 'renew' && (
             <section className="space-y-8">
               <div className="p-6 bg-muted/30 rounded-[1.5rem] border border-border space-y-4">
                 <SectionTitle>Kontrak Saat Ini</SectionTitle>
                 <div className="grid grid-cols-2 gap-4">
-                  <ContractCard label="Mulai Sewa" value={rental?.Tgl_Masuk ? format(parseISO(rental.Tgl_Masuk), 'd MMM yyyy', { locale: localeId }) : '-'} />
-                  <ContractCard label="Jatuh Tempo" value={rentalStatus ? format(rentalStatus.tglJatuhTempo, 'd MMM yyyy', { locale: localeId }) : '-'} dark />
+                  <ContractCard label="Mulai Sewa" value={rental?.Tgl_Masuk ? format(parseISO(rental.Tgl_Masuk), 'd MMM yyyy', { locale: localeId }) : '—'} />
+                  <ContractCard label="Jatuh Tempo" value={rentalStatus ? format(rentalStatus.tglJatuhTempo, 'd MMM yyyy', { locale: localeId }) : '—'} dark />
                 </div>
               </div>
 
               <div className="space-y-5">
                 <SectionTitle>Perpanjang Masa Sewa</SectionTitle>
                 <div className="space-y-2">
-                  <Label className="text-muted-foreground text-xs ml-1">Tambah berapa bulan?</Label>
+                  <Label className="text-muted-foreground text-xs ml-1">Tambah berapa {rental?.Unit_Durasi || 'Bulan'}?</Label>
                   <Select value={renewMonths} onValueChange={setRenewMonths}>
                     <SelectTrigger className="h-12 rounded-xl"><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="1">+ 1 Bulan</SelectItem>
-                      <SelectItem value="2">+ 2 Bulan</SelectItem>
-                      <SelectItem value="3">+ 3 Bulan</SelectItem>
-                      <SelectItem value="6">+ 6 Bulan</SelectItem>
-                      <SelectItem value="12">+ 12 Bulan (Tahunan)</SelectItem>
+                      {[1, 2, 3, 6, 12].map(n => (
+                        <SelectItem key={n} value={String(n)}>+ {n} {rental?.Unit_Durasi || 'Bulan'}</SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
 
-                {/* Preview jatuh tempo baru */}
                 {rentalStatus && (
                   <div className="flex items-center gap-4 p-5 bg-emerald-50 border border-emerald-100 rounded-2xl shadow-sm">
                     <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center">
@@ -339,7 +428,15 @@ export default function TenantSheet({ room, tenant, rental, isOpen, onClose }: T
                     <div>
                       <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest">Estimasi Jatuh Tempo Baru</p>
                       <p className="text-base font-bold text-foreground">
-                        {format(addMonths(rentalStatus.tglJatuhTempo, parseInt(renewMonths)), 'd MMMM yyyy', { locale: localeId })}
+                        {format(
+                          calculateDueDate(
+                            rentalStatus.tglJatuhTempo,
+                            parseInt(renewMonths),
+                            parseDurasiUnit(rental?.Unit_Durasi)
+                          ),
+                          'd MMMM yyyy',
+                          { locale: localeId }
+                        )}
                       </p>
                     </div>
                   </div>
@@ -352,19 +449,57 @@ export default function TenantSheet({ room, tenant, rental, isOpen, onClose }: T
         {/* ── Footer / Actions ── */}
         <div className="p-8 bg-white border-t border-border">
           <SheetFooter>
+            {/* SEWA MODE: 2 buttons — Booking + Konfirmasi Aktif */}
             {mode === 'sewa' && (
-              <Button
-                id="btn-sewa-kamar"
-                onClick={handleSewa}
-                disabled={loading}
-                className="w-full h-14 font-bold rounded-2xl shadow-xl shadow-orange-500/10"
-              >
-                {loading ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : null}
-                {loading ? 'Menyimpan...' : `Konfirmasi Sewa Kamar ${room?.No_Kamar}`}
-              </Button>
+              <div className="flex gap-3 w-full">
+                <Button
+                  id="btn-booking-kamar"
+                  onClick={handleBooking}
+                  disabled={loading}
+                  variant="outline"
+                  className="flex-1 h-14 font-bold rounded-2xl border-amber-300 text-amber-700 hover:bg-amber-50"
+                >
+                  {loading ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : <CalendarClock className="w-4 h-4 mr-2" />}
+                  Booking (DP)
+                </Button>
+                <Button
+                  id="btn-sewa-kamar"
+                  onClick={handleSewa}
+                  disabled={loading}
+                  className="flex-1 h-14 font-bold rounded-2xl shadow-xl shadow-orange-500/10"
+                >
+                  {loading ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : null}
+                  Sewa Aktif
+                </Button>
+              </div>
             )}
 
-            {mode === 'view' && (
+            {/* VIEW MODE — BOOKING: activate or cancel */}
+            {mode === 'view' && isBooked && (
+              <div className="flex gap-3 w-full">
+                <Button
+                  id="btn-checkout-booking"
+                  onClick={() => setShowCheckoutConfirm(true)}
+                  disabled={loading}
+                  variant="outline"
+                  className="flex-1 h-14 font-bold rounded-2xl text-muted-foreground"
+                >
+                  Batalkan Booking
+                </Button>
+                <Button
+                  id="btn-activate-booking"
+                  onClick={handleActivateBooking}
+                  disabled={loading}
+                  className="flex-1 h-14 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-2xl shadow-xl shadow-blue-500/10"
+                >
+                  {loading ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : <CheckCircle className="w-4 h-4 mr-2" />}
+                  Aktifkan (Check-in)
+                </Button>
+              </div>
+            )}
+
+            {/* VIEW MODE — AKTIF */}
+            {mode === 'view' && !isBooked && tenant && (
               <div className="flex gap-3 w-full">
                 <Button
                   id="btn-perpanjang-sewa"
@@ -387,6 +522,7 @@ export default function TenantSheet({ room, tenant, rental, isOpen, onClose }: T
               </div>
             )}
 
+            {/* RENEW MODE */}
             {mode === 'renew' && (
               <div className="flex gap-3 w-full">
                 <Button variant="ghost" onClick={() => setMode('view')} className="flex-1 h-14 font-bold rounded-2xl text-muted-foreground">
@@ -416,8 +552,12 @@ export default function TenantSheet({ room, tenant, rental, isOpen, onClose }: T
           setShowCheckoutConfirm(false);
         }}
         loading={loading}
-        title="Selesaikan Sewa?"
-        description={`Apakah Anda yakin ingin menyelesaikan masa sewa ${tenant?.Nama} di Kamar ${room?.No_Kamar}? Tindakan ini akan mengosongkan unit.`}
+        title={isBooked ? 'Batalkan Booking?' : 'Selesaikan Sewa?'}
+        description={
+          isBooked
+            ? `Apakah Anda yakin ingin membatalkan booking ${tenant?.Nama} di Kamar ${room?.No_Kamar}?`
+            : `Apakah Anda yakin ingin menyelesaikan masa sewa ${tenant?.Nama} di Kamar ${room?.No_Kamar}?`
+        }
       />
     </Sheet>
   );

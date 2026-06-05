@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react';
 import useSWR, { mutate } from 'swr';
 import { toast } from 'sonner';
-import { addMonths, parseISO } from 'date-fns';
+import { parseISO } from 'date-fns';
+import { calculateDueDate, parseDurasiUnit } from '@/lib/dateUtils';
 
 const fetcher = (url: string) => fetch(url).then(res => res.json());
 
@@ -18,6 +19,7 @@ interface SewaFormData {
   Tgl_Masuk: string;
   Tgl_DP: string;
   Periode_Sewa: string;
+  Unit_Durasi: string;
   Nominal_Deposit: string;
 }
 
@@ -29,6 +31,7 @@ const defaultSewaForm: SewaFormData = {
   Tgl_Masuk: new Date().toISOString().split('T')[0],
   Tgl_DP: new Date().toISOString().split('T')[0],
   Periode_Sewa: '1',
+  Unit_Durasi: 'Bulan',
   Nominal_Deposit: '0',
 };
 
@@ -68,6 +71,7 @@ export function useTenantSheet(
         Tgl_Masuk: rental?.Tgl_Masuk || '',
         Tgl_DP: rental?.Tgl_DP || '',
         Periode_Sewa: rental?.Periode_Sewa || '1',
+        Unit_Durasi: rental?.Unit_Durasi || 'Bulan',
         Nominal_Deposit: rental?.Nominal_Deposit || '0',
       });
     } else {
@@ -81,7 +85,6 @@ export function useTenantSheet(
   const invalidateCache = () =>
     mutate((key) => typeof key === 'string' && key.startsWith('/api/data'));
 
-  // FIX #1 — Sewa: bisa pilih penghuni lama atau buat baru
   const handleSewa = async () => {
     if (!sewaForm.Tgl_Masuk) {
       toast.error('Tanggal Masuk wajib diisi');
@@ -129,7 +132,8 @@ export function useTenantSheet(
           Tgl_DP: sewaForm.Tgl_DP,
           Nominal_Deposit: sewaForm.Nominal_Deposit,
           Periode_Sewa: sewaForm.Periode_Sewa,
-          Status_Aktif: 'TRUE',
+          Unit_Durasi: sewaForm.Unit_Durasi,
+          Status_Sewa: 'AKTIF',
         }),
       });
       if (!rentalRes.ok) throw new Error((await rentalRes.json()).message || 'Gagal simpan sewa');
@@ -148,6 +152,73 @@ export function useTenantSheet(
     }
   };
 
+  const handleBooking = async () => {
+    if (!sewaForm.Tgl_Masuk) {
+      toast.error('Tanggal Masuk wajib diisi');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      let tenantId: string;
+
+      if (tenantInputMode === 'existing') {
+        if (!selectedExistingTenantId) {
+          toast.error('Pilih penghuni terlebih dahulu');
+          setLoading(false);
+          return;
+        }
+        tenantId = selectedExistingTenantId;
+      } else {
+        if (!sewaForm.Nama || !sewaForm.No_HP) {
+          toast.error('Nama dan No. HP wajib diisi');
+          setLoading(false);
+          return;
+        }
+        tenantId = `P${Date.now()}`;
+        const tenantRes = await fetch('/api/data/Master_Penghuni', {
+          method: 'POST',
+          body: JSON.stringify({
+            ID_Penghuni: tenantId,
+            Nama: sewaForm.Nama,
+            No_HP: formatPhone(sewaForm.No_HP),
+            Bawa_Mobil: sewaForm.Bawa_Mobil,
+            Kontak_Darurat: formatPhone(sewaForm.Kontak_Darurat),
+          }),
+        });
+        if (!tenantRes.ok) throw new Error((await tenantRes.json()).message || 'Gagal simpan penghuni');
+      }
+
+      const rentalRes = await fetch('/api/data/Transaksi_Sewa', {
+        method: 'POST',
+        body: JSON.stringify({
+          ID_Sewa: `S${Date.now()}`,
+          ID_Kamar: room.ID_Kamar,
+          ID_Penghuni: tenantId,
+          Tgl_Masuk: sewaForm.Tgl_Masuk,
+          Tgl_DP: sewaForm.Tgl_DP,
+          Nominal_Deposit: sewaForm.Nominal_Deposit,
+          Periode_Sewa: sewaForm.Periode_Sewa,
+          Unit_Durasi: sewaForm.Unit_Durasi,
+          Status_Sewa: 'BOOKING',
+        }),
+      });
+      if (!rentalRes.ok) throw new Error((await rentalRes.json()).message || 'Gagal simpan booking');
+
+      const tenantName = tenantInputMode === 'existing'
+        ? allTenants.find(t => t.ID_Penghuni === tenantId)?.Nama
+        : sewaForm.Nama;
+
+      toast.success(`Booking Kamar ${room?.No_Kamar} untuk ${tenantName} berhasil dicatat`);
+      invalidateCache();
+      onClose();
+    } catch (error: any) {
+      toast.error(error.message || 'Gagal menyimpan booking');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleCheckout = async () => {
     setLoading(true);
     try {
@@ -156,7 +227,7 @@ export function useTenantSheet(
         body: JSON.stringify({
           idField: 'ID_Sewa',
           idValue: rental.ID_Sewa,
-          Status_Aktif: 'FALSE',
+          Status_Sewa: 'SELESAI',
         }),
       });
       if (!res.ok) throw new Error((await res.json()).message || 'Gagal checkout');
@@ -170,11 +241,33 @@ export function useTenantSheet(
     }
   };
 
-  // FIX #2 — Perpanjang sewa: tambah bulan ke periode yang ada
+  const handleActivateBooking = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/data/Transaksi_Sewa', {
+        method: 'PUT',
+        body: JSON.stringify({
+          idField: 'ID_Sewa',
+          idValue: rental.ID_Sewa,
+          Status_Sewa: 'AKTIF',
+        }),
+      });
+      if (!res.ok) throw new Error((await res.json()).message || 'Gagal aktivasi');
+      toast.success(`Kamar ${room?.No_Kamar} diaktifkan — ${tenant?.Nama} resmi masuk`);
+      invalidateCache();
+      onClose();
+    } catch (error: any) {
+      toast.error(error.message || 'Gagal aktivasi booking');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleRenew = async () => {
-    const additionalMonths = parseInt(renewMonths) || 1;
-    const currentPeriod = parseInt(rental?.Periode_Sewa) || 1;
-    const newTotalPeriod = currentPeriod + additionalMonths;
+    const additionalPeriode = parseInt(renewMonths) || 1;
+    const currentPeriode = parseInt(rental?.Periode_Sewa) || 1;
+    const newTotalPeriode = currentPeriode + additionalPeriode;
+    const unit = parseDurasiUnit(rental?.Unit_Durasi);
 
     setLoading(true);
     try {
@@ -183,14 +276,14 @@ export function useTenantSheet(
         body: JSON.stringify({
           idField: 'ID_Sewa',
           idValue: rental.ID_Sewa,
-          Periode_Sewa: String(newTotalPeriod),
-          Status_Aktif: 'TRUE',
+          Periode_Sewa: String(newTotalPeriode),
+          Status_Sewa: 'AKTIF',
         }),
       });
       if (!res.ok) throw new Error((await res.json()).message || 'Gagal perpanjang sewa');
 
-      const newExpiry = addMonths(parseISO(rental.Tgl_Masuk), newTotalPeriod);
-      toast.success(`Sewa diperpanjang ${additionalMonths} bulan — jatuh tempo baru: ${newExpiry.toLocaleDateString('id-ID')}`);
+      const newExpiry = calculateDueDate(parseISO(rental.Tgl_Masuk), newTotalPeriode, unit);
+      toast.success(`Sewa diperpanjang ${additionalPeriode} ${unit} — jatuh tempo baru: ${newExpiry.toLocaleDateString('id-ID')}`);
       invalidateCache();
       setMode('view');
     } catch (error: any) {
@@ -214,7 +307,9 @@ export function useTenantSheet(
     setSewaForm,
     allTenants,
     handleSewa,
+    handleBooking,
     handleCheckout,
+    handleActivateBooking,
     handleRenew,
   };
 }

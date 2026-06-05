@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import useSWR from 'swr';
-import { addMonths, isAfter, parseISO } from 'date-fns';
+import { isAfter, parseISO } from 'date-fns';
+import { calculateDueDate, parseDurasiUnit, resolveStatusSewa } from '@/lib/dateUtils';
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
@@ -24,20 +25,38 @@ export function useDashboard(kostId: string) {
   const allTenants = tenantsData?.data || [];
   const allRentals = rentalsData?.data || [];
 
-  const filteredRooms = allRooms.filter((r: any) => r.ID_Kost === kostId);
-  const currentKost = kosts.find((k: any) => k.ID_Kost === kostId);
+  const filteredRooms = allRooms.filter((room: any) => room.ID_Kost === kostId);
+  const currentKost = kosts.find((kost: any) => kost.ID_Kost === kostId);
 
+  // Count stats using Status_Sewa (with legacy fallback via resolveStatusSewa)
   let occupiedCount = 0;
   let overdueCount = 0;
+  let bookingCount = 0;
 
   filteredRooms.forEach((room: any) => {
-    const rental = allRentals.find((rent: any) => rent.ID_Kamar === room.ID_Kamar && rent.Status_Aktif === 'TRUE');
-    if (rental) {
+    const activeRental = allRentals.find((rental: any) => {
+      const status = resolveStatusSewa(rental);
+      return rental.ID_Kamar === room.ID_Kamar && (status === 'AKTIF' || status === 'BOOKING');
+    });
+
+    if (!activeRental) return;
+
+    const status = resolveStatusSewa(activeRental);
+
+    if (status === 'BOOKING') {
+      bookingCount++;
+      occupiedCount++; // bookings count as occupied
+      return;
+    }
+
+    if (status === 'AKTIF') {
       occupiedCount++;
-      if (rental.Tgl_Masuk) {
-        const tglMasuk = parseISO(rental.Tgl_Masuk);
-        const periode = parseInt(rental.Periode_Sewa) || 1;
-        if (isAfter(new Date(), addMonths(tglMasuk, periode))) {
+      if (activeRental.Tgl_Masuk) {
+        const tglMasuk = parseISO(activeRental.Tgl_Masuk);
+        const periode = parseInt(activeRental.Periode_Sewa) || 1;
+        const unit = parseDurasiUnit(activeRental.Unit_Durasi);
+        const dueDate = calculateDueDate(tglMasuk, periode, unit);
+        if (isAfter(new Date(), dueDate)) {
           overdueCount++;
         }
       }
@@ -49,6 +68,7 @@ export function useDashboard(kostId: string) {
     occupied: occupiedCount,
     vacant: filteredRooms.length - occupiedCount,
     overdue: overdueCount,
+    booking: bookingCount,
   };
 
   const handleRoomClick = (room: any, tenant?: any, rental?: any) => {
@@ -72,6 +92,6 @@ export function useDashboard(kostId: string) {
     selectedRental,
     isSheetOpen,
     handleRoomClick,
-    closeSheet
+    closeSheet,
   };
 }

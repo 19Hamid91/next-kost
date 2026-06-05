@@ -10,9 +10,11 @@ import RoomManagement from '@/components/management/RoomManagement';
 import TenantManagement from '@/components/management/TenantManagement';
 import RentalManagement from '@/components/management/RentalManagement';
 import ConfirmModal from '@/components/ui/ConfirmModal';
+import BulkAddModal, { BulkAddEntityType } from '@/components/management/BulkAddModal';
+import FloatingActionBar, { makeStatusAction } from '@/components/management/FloatingActionBar';
 import { useState } from 'react';
 
-const TabContentWrapper = ({ children, value }: { children: React.ReactNode, value: string }) => (
+const TabContentWrapper = ({ children, value }: { children: React.ReactNode; value: string }) => (
   <TabsContent value={value} className="mt-0 outline-none">
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -30,29 +32,24 @@ export default function ManagementPage() {
   const kostId = params.kostId as string;
 
   const {
-    rooms,
-    tenants,
-    rentals,
-    allRooms,
-    allTenants,
-    isLoading,
-    editingId,
-    editFormData,
-    isAdding,
-    actionLoading,
-    setEditFormData,
-    handleEdit,
-    cancelEdit,
-    startAdding,
-    handleSave,
-    handleDelete
+    rooms, tenants, rentals, allRooms, allTenants,
+    isLoading, editingId, editFormData, isAdding, actionLoading,
+    selectedIds, setEditFormData,
+    handleEdit, cancelEdit, startAdding,
+    handleSave, handleDelete,
+    toggleSelect, clearSelection, handleBulkUpdate,
   } = useManagement(kostId);
 
+  // Single-delete confirm
   const [confirmDelete, setConfirmDelete] = useState<{
-    sheetName: string;
-    idField: string;
-    idValue: string;
+    sheetName: string; idField: string; idValue: string;
   } | null>(null);
+
+  // Bulk Add modal state
+  const [bulkAddEntity, setBulkAddEntity] = useState<BulkAddEntityType | null>(null);
+
+  // Active tab (to build correct FAB actions)
+  const [activeTab, setActiveTab] = useState('rooms');
 
   if (isLoading) {
     return (
@@ -64,6 +61,27 @@ export default function ManagementPage() {
       </div>
     );
   }
+
+  // ── FAB actions per tab ─────────────────────────────────────────
+  const fabActions = (() => {
+    if (activeTab === 'rentals') {
+      return [
+        makeStatusAction(
+          '→ AKTIF',
+          'AKTIF',
+          selectedIds.length,
+          () => handleBulkUpdate('Transaksi_Sewa', 'ID_Sewa', { Status_Sewa: 'AKTIF' })
+        ),
+        makeStatusAction(
+          '→ SELESAI',
+          'SELESAI',
+          selectedIds.length,
+          () => handleBulkUpdate('Transaksi_Sewa', 'ID_Sewa', { Status_Sewa: 'SELESAI' })
+        ),
+      ];
+    }
+    return [];
+  })();
 
   return (
     <div className="min-h-screen bg-muted/30 text-foreground flex flex-col font-sans">
@@ -80,7 +98,7 @@ export default function ManagementPage() {
           </div>
         </div>
 
-        <Tabs defaultValue="rooms" className="w-full space-y-10">
+        <Tabs defaultValue="rooms" className="w-full space-y-10" onValueChange={(val) => { setActiveTab(val); clearSelection(); }}>
           <div className="flex justify-center w-full">
             <TabsList className="bg-white/50 backdrop-blur-md p-1.5 md:p-2 md:px-4 rounded-[1.25rem] md:rounded-[1.5rem] h-13 md:h-16 border border-border shadow-soft w-full md:w-auto flex overflow-x-auto no-scrollbar justify-around md:justify-center">
               <TabsTrigger value="rooms" className="shrink-0 rounded-xl px-6 md:px-12 h-full text-[10px] md:text-[11px] font-bold uppercase tracking-widest data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm transition-all whitespace-nowrap">Kamar</TabsTrigger>
@@ -97,11 +115,14 @@ export default function ManagementPage() {
                 editFormData={editFormData}
                 isAdding={isAdding}
                 actionLoading={actionLoading}
+                selectedIds={selectedIds}
                 onEdit={(room) => handleEdit(room, 'ID_Kamar')}
                 onSave={() => handleSave('Master_Kamar', 'ID_Kamar')}
                 onDelete={(id) => setConfirmDelete({ sheetName: 'Master_Kamar', idField: 'ID_Kamar', idValue: id })}
                 onCancel={cancelEdit}
                 onStartAdding={() => startAdding({ Lantai: '1' })}
+                onBulkAdd={() => setBulkAddEntity('rooms')}
+                onToggleSelect={toggleSelect}
                 setEditFormData={setEditFormData}
               />
             </TabContentWrapper>
@@ -113,11 +134,14 @@ export default function ManagementPage() {
                 editFormData={editFormData}
                 isAdding={isAdding}
                 actionLoading={actionLoading}
+                selectedIds={selectedIds}
                 onEdit={(tenant) => handleEdit(tenant, 'ID_Penghuni')}
                 onSave={() => handleSave('Master_Penghuni', 'ID_Penghuni')}
                 onDelete={(id) => setConfirmDelete({ sheetName: 'Master_Penghuni', idField: 'ID_Penghuni', idValue: id })}
                 onCancel={cancelEdit}
                 onStartAdding={() => startAdding({ Bawa_Mobil: 'Tidak' })}
+                onBulkAdd={() => setBulkAddEntity('tenants')}
+                onToggleSelect={toggleSelect}
                 setEditFormData={setEditFormData}
               />
             </TabContentWrapper>
@@ -131,11 +155,13 @@ export default function ManagementPage() {
                 editFormData={editFormData}
                 isAdding={isAdding}
                 actionLoading={actionLoading}
+                selectedIds={selectedIds}
                 onEdit={(rental) => handleEdit(rental, 'ID_Sewa')}
                 onSave={() => handleSave('Transaksi_Sewa', 'ID_Sewa')}
                 onDelete={(id) => setConfirmDelete({ sheetName: 'Transaksi_Sewa', idField: 'ID_Sewa', idValue: id })}
                 onCancel={cancelEdit}
                 onStartAdding={(data) => startAdding(data)}
+                onToggleSelect={toggleSelect}
                 setEditFormData={setEditFormData}
               />
             </TabContentWrapper>
@@ -143,6 +169,7 @@ export default function ManagementPage() {
         </Tabs>
       </main>
 
+      {/* Single delete confirm */}
       <ConfirmModal
         isOpen={!!confirmDelete}
         onClose={() => setConfirmDelete(null)}
@@ -154,7 +181,25 @@ export default function ManagementPage() {
         }}
         loading={actionLoading?.startsWith('delete-')}
         title="Hapus Data?"
-        description="Data yang dihapus tidak dapat dipulihkan. Pastikan Anda sudah memeriksa kembali data tersebut."
+        description="Data yang dihapus tidak dapat dipulihkan."
+      />
+
+      {/* Bulk Add Modal */}
+      {bulkAddEntity && (
+        <BulkAddModal
+          isOpen={!!bulkAddEntity}
+          onClose={() => setBulkAddEntity(null)}
+          entityType={bulkAddEntity}
+          kostId={kostId}
+        />
+      )}
+
+      {/* Floating Action Bar — only when items selected */}
+      <FloatingActionBar
+        selectedCount={selectedIds.length}
+        actions={fabActions}
+        onClearSelection={clearSelection}
+        loading={actionLoading === 'bulk'}
       />
     </div>
   );
