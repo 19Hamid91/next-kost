@@ -19,11 +19,17 @@ export default function RoomGrid({ rooms, tenants, rentals, onRoomClick }: RoomG
   );
 
   return (
-    <Tabs defaultValue={String(floors[0])} className="w-full space-y-8">
+    <Tabs defaultValue="ALL" className="w-full space-y-8">
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
         {/* Floor tabs */}
         <div className="overflow-x-auto pb-1">
           <TabsList className="bg-muted/50 border border-border p-1 rounded-2xl h-auto">
+            <TabsTrigger
+              value="ALL"
+              className="data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm px-8 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest transition-all"
+            >
+              Semua Lantai
+            </TabsTrigger>
             {floors.map((floor) => (
               <TabsTrigger
                 key={floor}
@@ -57,6 +63,47 @@ export default function RoomGrid({ rooms, tenants, rentals, onRoomClick }: RoomG
         </div>
       </div>
 
+      {/* Semua Lantai */}
+      <TabsContent value="ALL" className="space-y-10">
+        {floors.map((floor) => {
+          const floorRooms = rooms.filter((room) => String(room.Lantai) === String(floor));
+          if (floorRooms.length === 0) return null;
+
+          return (
+            <div key={`all-${floor}`} className="space-y-5">
+              <div className="flex items-center gap-4">
+                <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-[0.2em] whitespace-nowrap">
+                  Lantai {floor}
+                </h3>
+                <div className="h-[1px] flex-1 bg-border/50"></div>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 md:gap-4">
+                {floorRooms.map((room) => {
+                  const activeRental = rentals.find((rental) => {
+                    const status = resolveStatusSewa(rental);
+                    return rental.ID_Kamar === room.ID_Kamar && (status === 'AKTIF' || status === 'BOOKING');
+                  });
+                  const activeTenant = activeRental
+                    ? tenants.find((tenant) => tenant.ID_Penghuni === activeRental.ID_Penghuni)
+                    : null;
+
+                  return (
+                    <RoomCard
+                      key={room.ID_Kamar}
+                      room={room}
+                      tenant={activeTenant}
+                      rental={activeRental}
+                      onClick={onRoomClick}
+                    />
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
+      </TabsContent>
+
+      {/* Per Lantai */}
       {floors.map((floor) => (
         <TabsContent key={floor} value={String(floor)}>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 md:gap-4">
