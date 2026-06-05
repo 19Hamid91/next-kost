@@ -45,9 +45,9 @@ export default function RoomManagement({
 
   return (
     <Card className="bg-white/70 backdrop-blur-xl border-white/20 shadow-soft rounded-[2rem] overflow-hidden">
-      <CardHeader className="flex flex-row items-center justify-between border-b border-border p-8 gap-4">
+      <CardHeader className="flex flex-row items-center justify-between border-b border-border p-6 gap-4">
         <div className="space-y-1">
-          <CardTitle className="text-2xl font-bold text-foreground">Master Kamar</CardTitle>
+          <CardTitle className="text-xl font-bold text-foreground">Master Kamar</CardTitle>
           <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em]">Manajemen unit kost aktif</p>
         </div>
         <div className="flex gap-2">
@@ -70,7 +70,7 @@ export default function RoomManagement({
           <Table>
             <TableHeader className="bg-muted/30">
               <TableRow className="border-border">
-                <TableHead className="w-12 pl-8 py-5">
+                <TableHead className="w-12 pl-6 py-4">
                   <input
                     type="checkbox"
                     checked={allSelected}
@@ -82,7 +82,7 @@ export default function RoomManagement({
                   <TableHead
                     key={head}
                     className={cn(
-                      'text-[10px] font-bold uppercase tracking-widest text-muted-foreground py-5',
+                      'text-[10px] font-bold uppercase tracking-widest text-muted-foreground py-4',
                       idx === 3 ? 'text-right pr-8' : ''
                     )}
                   >
@@ -95,7 +95,7 @@ export default function RoomManagement({
               {/* ADD ROW */}
               {isAdding && editingId === 'new' && (
                 <TableRow className="border-border bg-orange-50/30">
-                  <TableCell className="pl-8" />
+                  <TableCell className="pl-6" />
                   <TableCell>
                     <Input value={editFormData.No_Kamar || ''} onChange={e => setEditFormData({ ...editFormData, No_Kamar: e.target.value })} className="h-10 rounded-xl" placeholder="A1" />
                   </TableCell>
@@ -129,7 +129,7 @@ export default function RoomManagement({
                       isSelected ? 'bg-primary/5' : ''
                     )}
                   >
-                    <TableCell className="pl-8 py-5">
+                    <TableCell className="pl-6 py-4">
                       <input
                         type="checkbox"
                         checked={isSelected}

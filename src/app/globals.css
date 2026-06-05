@@ -91,3 +91,15 @@ body {
 ::selection {
   @apply bg-orange-100 text-orange-900;
 }
+
+@layer utilities {
+  .animate-shimmer {
+    animation: shimmer 3s linear infinite;
+    background-size: 200% auto;
+  }
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% center; }
+  100% { background-position: -200% center; }
+}

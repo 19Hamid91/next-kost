@@ -91,9 +91,9 @@ export default function RentalManagement({
 
   return (
     <Card className="bg-white/70 backdrop-blur-xl border-white/20 shadow-soft rounded-[2rem] overflow-hidden">
-      <CardHeader className="flex flex-row items-center justify-between border-b border-border p-8">
+      <CardHeader className="flex flex-row items-center justify-between border-b border-border p-6">
         <div className="space-y-1">
-          <CardTitle className="text-2xl font-bold text-foreground">Transaksi Sewa</CardTitle>
+          <CardTitle className="text-xl font-bold text-foreground">Transaksi Sewa</CardTitle>
           <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em]">Riwayat dan status kontrak aktif</p>
         </div>
         <Button
@@ -117,14 +117,14 @@ export default function RentalManagement({
           <Table>
             <TableHeader className="bg-muted/30">
               <TableRow className="border-border">
-                <TableHead className="w-12 pl-8 py-5">
+                <TableHead className="w-12 pl-6 py-4">
                   <input type="checkbox" checked={allSelected} onChange={toggleAll} className="w-4 h-4 rounded accent-primary cursor-pointer" />
                 </TableHead>
                 {HEADS.map((head, idx) => (
                   <TableHead
                     key={head}
                     className={cn(
-                      'text-[10px] font-bold uppercase tracking-widest text-muted-foreground py-5',
+                      'text-[10px] font-bold uppercase tracking-widest text-muted-foreground py-4',
                       idx === HEADS.length - 1 ? 'text-right pr-8' : ''
                     )}
                   >
@@ -138,7 +138,7 @@ export default function RentalManagement({
               {/* ADD ROW */}
               {isAdding && editingId === 'new' && (
                 <TableRow className="border-border bg-orange-50/30">
-                  <TableCell className="pl-8" />
+                  <TableCell className="pl-6" />
                   <TableCell>
                     <select value={editFormData.ID_Kamar || ''} onChange={e => set('ID_Kamar')(e.target.value)} className="w-full bg-white border border-border text-foreground p-2 rounded-xl h-10 text-xs font-bold">
                       <option value="">Pilih Kamar</option>
@@ -183,7 +183,7 @@ export default function RentalManagement({
                     key={rental.ID_Sewa}
                     className={cn('border-border hover:bg-muted/20 transition-colors', isSelected ? 'bg-primary/5' : '')}
                   >
-                    <TableCell className="pl-8 py-5">
+                    <TableCell className="pl-6 py-4">
                       <input type="checkbox" checked={isSelected} onChange={() => onToggleSelect(rental.ID_Sewa)} className="w-4 h-4 rounded accent-primary cursor-pointer" />
                     </TableCell>
                     <TableCell className="font-bold text-foreground">
@@ -200,21 +200,21 @@ export default function RentalManagement({
                           </select>
                         : (tenant?.Nama || rental.ID_Penghuni)}
                     </TableCell>
-                    <TableCell className="font-medium text-muted-foreground text-xs">
-                      {isEditing ? <Input type="date" value={editFormData.Tgl_Masuk || ''} onChange={e => set('Tgl_Masuk')(e.target.value)} className="h-9 text-xs p-1 rounded-lg" /> : rental.Tgl_Masuk}
+                    <TableCell className="font-medium text-muted-foreground">
+                      {isEditing ? <Input type="date" value={editFormData.Tgl_Masuk || ''} onChange={e => set('Tgl_Masuk')(e.target.value)} className="h-9 p-1 rounded-lg" /> : rental.Tgl_Masuk}
                     </TableCell>
-                    <TableCell className="font-medium text-muted-foreground text-xs">
-                      {isEditing ? <Input type="date" value={editFormData.Tgl_DP || ''} onChange={e => set('Tgl_DP')(e.target.value)} className="h-9 text-xs p-1 rounded-lg" /> : (rental.Tgl_DP || '—')}
+                    <TableCell className="font-medium text-muted-foreground">
+                      {isEditing ? <Input type="date" value={editFormData.Tgl_DP || ''} onChange={e => set('Tgl_DP')(e.target.value)} className="h-9 p-1 rounded-lg" /> : (rental.Tgl_DP || '—')}
                     </TableCell>
-                    <TableCell className="font-medium text-muted-foreground text-xs">
+                    <TableCell className="font-medium text-muted-foreground">
                       {isEditing
-                        ? <Input type="number" value={editFormData.Nominal_Deposit || '0'} onChange={e => set('Nominal_Deposit')(e.target.value)} className="h-9 text-xs p-1 w-28 rounded-lg" />
+                        ? <Input type="number" value={editFormData.Nominal_Deposit || '0'} onChange={e => set('Nominal_Deposit')(e.target.value)} className="h-9 p-1 w-28 rounded-lg" />
                         : `Rp ${parseInt(rental.Nominal_Deposit || '0').toLocaleString('id-ID')}`}
                     </TableCell>
                     <TableCell className="font-medium text-muted-foreground">
-                      {isEditing ? <Input type="number" value={editFormData.Periode_Sewa || ''} onChange={e => set('Periode_Sewa')(e.target.value)} className="h-9 text-xs p-1 w-16 rounded-lg" /> : rental.Periode_Sewa}
+                      {isEditing ? <Input type="number" value={editFormData.Periode_Sewa || ''} onChange={e => set('Periode_Sewa')(e.target.value)} className="h-9 p-1 w-16 rounded-lg" /> : rental.Periode_Sewa}
                     </TableCell>
-                    <TableCell className="font-medium text-muted-foreground text-xs">
+                    <TableCell className="font-medium text-muted-foreground">
                       {isEditing
                         ? <InlineSelect value={editFormData.Unit_Durasi || 'Bulan'} onChange={set('Unit_Durasi')} options={DURASI_OPTIONS} className="p-1 rounded-lg h-9 w-20" />
                         : (rental.Unit_Durasi || 'Bulan')}

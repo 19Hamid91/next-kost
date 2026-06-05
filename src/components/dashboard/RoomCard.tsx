@@ -128,8 +128,8 @@ export default function RoomCard({ room, tenant, rental, onClick }: RoomProps) {
           {/* Car icon — top right */}
           {tenant?.Bawa_Mobil === 'Ya' && (
             <div className="absolute top-3 right-3 z-10">
-              <div className="w-6 h-6 rounded-lg bg-amber-50 border border-amber-200 flex items-center justify-center">
-                <Car className="w-3.5 h-3.5 text-amber-600" />
+              <div className="w-6 h-6 rounded-lg bg-gradient-to-r from-slate-300 via-white to-slate-300 border border-slate-300/80 flex items-center justify-center shadow-md shadow-slate-500/20 animate-shimmer">
+                <Car className="w-3.5 h-3.5 text-slate-700 drop-shadow-sm" />
               </div>
             </div>
           )}
@@ -215,7 +215,7 @@ export default function RoomCard({ room, tenant, rental, onClick }: RoomProps) {
               <div className="p-3 bg-muted/30 rounded-xl border border-border space-y-0.5">
                 <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest">Kendaraan</p>
                 <div className="flex items-center gap-1.5 text-[10px] text-foreground font-bold">
-                  <Car className="w-3 h-3 text-muted-foreground" />
+                  <Car className={cn("w-3 h-3", tenant?.Bawa_Mobil === 'Ya' ? "text-slate-700 drop-shadow-sm" : "text-muted-foreground")} />
                   {tenant?.Bawa_Mobil === 'Ya' ? 'Mobil' : '—'}
                 </div>
               </div>

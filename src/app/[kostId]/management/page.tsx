@@ -100,10 +100,10 @@ export default function ManagementPage() {
 
         <Tabs defaultValue="rooms" className="w-full space-y-10" onValueChange={(val) => { setActiveTab(val); clearSelection(); }}>
           <div className="flex justify-center w-full">
-            <TabsList className="bg-white/50 backdrop-blur-md p-1.5 md:p-2 md:px-4 rounded-[1.25rem] md:rounded-[1.5rem] h-13 md:h-16 border border-border shadow-soft w-full md:w-auto flex overflow-x-auto no-scrollbar justify-around md:justify-center">
-              <TabsTrigger value="rooms" className="shrink-0 rounded-xl px-6 md:px-12 h-full text-[10px] md:text-[11px] font-bold uppercase tracking-widest data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm transition-all whitespace-nowrap">Kamar</TabsTrigger>
-              <TabsTrigger value="tenants" className="shrink-0 rounded-xl px-6 md:px-12 h-full text-[10px] md:text-[11px] font-bold uppercase tracking-widest data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm transition-all whitespace-nowrap">Penghuni</TabsTrigger>
-              <TabsTrigger value="rentals" className="shrink-0 rounded-xl px-6 md:px-12 h-full text-[10px] md:text-[11px] font-bold uppercase tracking-widest data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm transition-all whitespace-nowrap">Sewa</TabsTrigger>
+            <TabsList className="bg-white/50 backdrop-blur-md p-1.5 md:p-2 md:px-4 rounded-[1.25rem] md:rounded-[1.5rem] h-14 md:h-16 border border-border shadow-soft w-full flex">
+              <TabsTrigger value="rooms" className="flex-1 rounded-xl h-full text-[10px] md:text-[11px] font-bold uppercase tracking-widest data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm transition-all whitespace-nowrap">Kamar</TabsTrigger>
+              <TabsTrigger value="tenants" className="flex-1 rounded-xl h-full text-[10px] md:text-[11px] font-bold uppercase tracking-widest data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm transition-all whitespace-nowrap">Penghuni</TabsTrigger>
+              <TabsTrigger value="rentals" className="flex-1 rounded-xl h-full text-[10px] md:text-[11px] font-bold uppercase tracking-widest data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm transition-all whitespace-nowrap">Sewa</TabsTrigger>
             </TabsList>
           </div>
 

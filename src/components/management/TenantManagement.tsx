@@ -42,9 +42,9 @@ export default function TenantManagement({
 
   return (
     <Card className="bg-white/70 backdrop-blur-xl border-white/20 shadow-soft rounded-[2rem] overflow-hidden">
-      <CardHeader className="flex flex-row items-center justify-between border-b border-border p-8 gap-4">
+      <CardHeader className="flex flex-row items-center justify-between border-b border-border p-6 gap-4">
         <div className="space-y-1">
-          <CardTitle className="text-2xl font-bold text-foreground">Master Penghuni</CardTitle>
+          <CardTitle className="text-xl font-bold text-foreground">Master Penghuni</CardTitle>
           <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em]">Manajemen database penyewa</p>
         </div>
         <div className="flex gap-2">
@@ -67,7 +67,7 @@ export default function TenantManagement({
           <Table>
             <TableHeader className="bg-muted/30">
               <TableRow className="border-border">
-                <TableHead className="w-12 pl-8 py-5">
+                <TableHead className="w-12 pl-6 py-4">
                   <input
                     type="checkbox"
                     checked={allSelected}
@@ -79,7 +79,7 @@ export default function TenantManagement({
                   <TableHead
                     key={head}
                     className={cn(
-                      'text-[10px] font-bold uppercase tracking-widest text-muted-foreground py-5',
+                      'text-[10px] font-bold uppercase tracking-widest text-muted-foreground py-4',
                       idx === 4 ? 'text-right pr-8' : ''
                     )}
                   >
@@ -91,7 +91,7 @@ export default function TenantManagement({
             <TableBody>
               {isAdding && editingId === 'new' && (
                 <TableRow className="border-border bg-orange-50/30">
-                  <TableCell className="pl-8" />
+                  <TableCell className="pl-6" />
                   <TableCell><Input value={editFormData.Nama || ''} onChange={e => setEditFormData({ ...editFormData, Nama: e.target.value })} className="h-10 rounded-xl" placeholder="Nama" /></TableCell>
                   <TableCell><Input value={editFormData.No_HP || ''} onChange={e => setEditFormData({ ...editFormData, No_HP: e.target.value })} className="h-10 rounded-xl" placeholder="628xxxx" /></TableCell>
                   <TableCell>
@@ -122,7 +122,7 @@ export default function TenantManagement({
                     key={tenant.ID_Penghuni}
                     className={cn('border-border hover:bg-muted/20 transition-colors', isSelected ? 'bg-primary/5' : '')}
                   >
-                    <TableCell className="pl-8 py-5">
+                    <TableCell className="pl-6 py-4">
                       <input type="checkbox" checked={isSelected} onChange={() => onToggleSelect(tenant.ID_Penghuni)} className="w-4 h-4 rounded accent-primary cursor-pointer" />
                     </TableCell>
                     <TableCell className="font-bold text-foreground">
@@ -138,7 +138,7 @@ export default function TenantManagement({
                           <option value="Ya">Ya</option>
                         </select>
                       ) : (
-                        <Badge variant={tenant.Bawa_Mobil === 'Ya' ? 'default' : 'outline'} className={cn('rounded-full text-[10px] font-bold px-3 border-0', tenant.Bawa_Mobil === 'Ya' ? 'bg-primary/10 text-primary hover:bg-primary/10' : 'bg-muted text-muted-foreground hover:bg-muted')}>
+                        <Badge variant={tenant.Bawa_Mobil === 'Ya' ? 'default' : 'outline'} className={cn('rounded-full text-[10px] font-bold px-3', tenant.Bawa_Mobil === 'Ya' ? 'bg-gradient-to-r from-slate-300 via-white to-slate-300 text-slate-700 border border-slate-300/80 shadow-md shadow-slate-500/20 animate-shimmer' : 'border-0 bg-muted text-muted-foreground hover:bg-muted')}>
                           {tenant.Bawa_Mobil === 'Ya' ? 'MOBIL' : 'TANPA MOBIL'}
                         </Badge>
                       )}

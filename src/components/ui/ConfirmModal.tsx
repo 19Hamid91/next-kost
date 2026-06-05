@@ -38,13 +38,13 @@ export default function ConfirmModal({
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="bg-white/90 backdrop-blur-2xl border-white/20 shadow-premium rounded-[2.5rem] max-w-[400px] p-0 overflow-hidden border-none shadow-2xl">
-        <div className="p-8">
+        <div className="p-6">
           <DialogHeader className="flex flex-col items-center gap-6 pt-4">
             <motion.div 
               initial={{ scale: 0.5, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ type: "spring", damping: 12, stiffness: 200 }}
-              className={`w-20 h-20 rounded-[2rem] flex items-center justify-center shadow-lg ${
+              className={`w-16 h-16 rounded-[1.5rem] flex items-center justify-center shadow-lg ${
                 variant === 'destructive' 
                   ? 'bg-destructive/10 text-destructive shadow-destructive/10' 
                   : 'bg-primary/10 text-primary shadow-orange-500/10'
@@ -54,7 +54,7 @@ export default function ConfirmModal({
                 animate={{ rotate: [0, -10, 10, -10, 10, 0] }}
                 transition={{ duration: 0.5, delay: 0.2 }}
               >
-                <AlertTriangle className="w-10 h-10" />
+                <AlertTriangle className="w-8 h-8" />
               </motion.div>
             </motion.div>
             <motion.div 
@@ -63,7 +63,7 @@ export default function ConfirmModal({
               transition={{ delay: 0.1 }}
               className="space-y-2 text-center"
             >
-              <DialogTitle className="text-2xl font-bold text-foreground tracking-tight">{title}</DialogTitle>
+              <DialogTitle className="text-xl font-bold text-foreground tracking-tight">{title}</DialogTitle>
               <DialogDescription className="text-muted-foreground text-sm font-medium leading-relaxed px-4">
                 {description}
               </DialogDescription>
@@ -74,7 +74,7 @@ export default function ConfirmModal({
               variant="ghost"
               onClick={onClose}
               disabled={loading}
-              className="flex-1 h-13 rounded-2xl font-bold text-muted-foreground hover:bg-muted"
+              className="flex-1 h-11 rounded-xl font-bold text-muted-foreground hover:bg-muted"
             >
               {cancelText}
             </Button>
@@ -82,7 +82,7 @@ export default function ConfirmModal({
               variant={variant === 'destructive' ? 'destructive' : 'default'}
               onClick={onConfirm}
               disabled={loading}
-              className={`flex-1 h-13 rounded-2xl font-bold shadow-xl ${
+              className={`flex-1 h-11 rounded-xl font-bold shadow-xl ${
                 variant === 'destructive' ? 'shadow-destructive/10' : 'shadow-orange-500/10'
               }`}
             >

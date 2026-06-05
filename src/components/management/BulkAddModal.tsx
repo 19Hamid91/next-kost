@@ -158,10 +158,10 @@ export default function BulkAddModal({ isOpen, onClose, entityType, kostId }: Bu
       <DialogContent className="max-w-4xl w-full bg-white rounded-[2rem] p-0 overflow-hidden shadow-2xl border-0 gap-0">
 
         {/* Header */}
-        <DialogHeader className="p-8 pb-6 border-b border-border bg-muted/30">
+        <DialogHeader className="p-6 pb-4 border-b border-border bg-muted/30">
           <div className="flex items-start justify-between">
             <div className="space-y-1">
-              <DialogTitle className="text-2xl font-bold text-foreground">{title}</DialogTitle>
+              <DialogTitle className="text-xl font-bold text-foreground">{title}</DialogTitle>
               <DialogDescription className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
                 Input baris sekaligus, simpan dalam satu klik
               </DialogDescription>
@@ -173,7 +173,7 @@ export default function BulkAddModal({ isOpen, onClose, entityType, kostId }: Bu
         </DialogHeader>
 
         {/* Grid */}
-        <div className="overflow-auto max-h-[50vh] p-8">
+        <div className="overflow-auto max-h-[50vh] p-6">
           <table className="w-full text-sm border-collapse">
             <thead>
               <tr>
@@ -260,12 +260,12 @@ export default function BulkAddModal({ isOpen, onClose, entityType, kostId }: Bu
         </div>
 
         {/* Footer */}
-        <div className="p-8 pt-6 border-t border-border flex gap-3">
+        <div className="p-6 pt-4 border-t border-border flex gap-3">
           <Button
             variant="ghost"
             onClick={handleClose}
             disabled={loading}
-            className="flex-1 h-12 rounded-2xl font-bold text-muted-foreground"
+            className="flex-1 h-10 rounded-xl font-bold text-muted-foreground"
           >
             Batal
           </Button>
@@ -273,7 +273,7 @@ export default function BulkAddModal({ isOpen, onClose, entityType, kostId }: Bu
             id="btn-bulk-save"
             onClick={handleSave}
             disabled={loading}
-            className="flex-1 h-12 rounded-2xl font-bold shadow-xl shadow-orange-500/10"
+            className="flex-1 h-10 rounded-xl font-bold shadow-xl shadow-orange-500/10"
           >
             {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
             {loading ? 'Menyimpan...' : `Simpan ${rows.length} Baris`}
