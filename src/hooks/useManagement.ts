@@ -65,6 +65,43 @@ export function useManagement(kostId: string) {
       let payload = { ...editFormData };
       payload.ID_Kost = kostId;
 
+      if (sheetName === 'Transaksi_Sewa') {
+        if (!payload.ID_Kamar || !payload.ID_Kamar.trim()) {
+          toast.error('Pilih kamar terlebih dahulu');
+          setActionLoading(null);
+          return;
+        }
+        if (!payload.ID_Penghuni || !payload.ID_Penghuni.trim()) {
+          toast.error('Pilih penghuni terlebih dahulu');
+          setActionLoading(null);
+          return;
+        }
+
+        // Check if the current payload is active or booking
+        const newStatus = payload.Status_Sewa || (payload.Status_Aktif === 'TRUE' ? 'AKTIF' : 'SELESAI');
+        if (newStatus === 'AKTIF' || newStatus === 'BOOKING') {
+          const conflict = allRentals.find((rental: any) => {
+            if (!isAdding && rental.ID_Sewa === editingId) return false;
+            
+            const status = resolveStatusSewa(rental);
+            if (status !== 'AKTIF' && status !== 'BOOKING') return false;
+
+            return rental.ID_Kamar === payload.ID_Kamar || rental.ID_Penghuni === payload.ID_Penghuni;
+          });
+
+          if (conflict) {
+            const status = resolveStatusSewa(conflict);
+            if (conflict.ID_Kamar === payload.ID_Kamar) {
+              toast.error(`Kamar sudah disewa dengan status ${status}`);
+            } else {
+              toast.error(`Penghuni sudah menyewa kamar lain dengan status ${status}`);
+            }
+            setActionLoading(null);
+            return;
+          }
+        }
+      }
+
       if (isAdding && !payload[idField]) {
         payload[idField] = `${sheetName[0]}${Date.now()}`;
       }

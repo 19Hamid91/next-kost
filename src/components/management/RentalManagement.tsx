@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { Loader2, Plus, Pencil, Trash2, Save, X } from 'lucide-react';
 import { resolveStatusSewa } from '@/lib/dateUtils';
+import SearchableSelect from '@/components/ui/SearchableSelect';
 
 interface RentalManagementProps {
   rentals: any[];
@@ -140,16 +141,20 @@ export default function RentalManagement({
                 <TableRow className="border-border bg-orange-50/30">
                   <TableCell className="pl-6" />
                   <TableCell>
-                    <select value={editFormData.ID_Kamar || ''} onChange={e => set('ID_Kamar')(e.target.value)} className="w-full bg-white border border-border text-foreground p-2 rounded-xl h-10 text-xs font-bold">
-                      <option value="">Pilih Kamar</option>
-                      {rooms.map(r => <option key={r.ID_Kamar} value={r.ID_Kamar}>{r.No_Kamar}</option>)}
-                    </select>
+                    <SearchableSelect
+                      value={editFormData.ID_Kamar || ''}
+                      onChange={set('ID_Kamar')}
+                      options={rooms.map(r => ({ value: r.ID_Kamar, label: `Kamar ${r.No_Kamar}`, subLabel: `Lantai ${r.Lantai}` }))}
+                      placeholder="Pilih Kamar"
+                    />
                   </TableCell>
                   <TableCell>
-                    <select value={editFormData.ID_Penghuni || ''} onChange={e => set('ID_Penghuni')(e.target.value)} className="w-full bg-white border border-border text-foreground p-2 rounded-xl h-10 text-xs font-bold">
-                      <option value="">Pilih Penghuni</option>
-                      {tenants.map(t => <option key={t.ID_Penghuni} value={t.ID_Penghuni}>{t.Nama}</option>)}
-                    </select>
+                    <SearchableSelect
+                      value={editFormData.ID_Penghuni || ''}
+                      onChange={set('ID_Penghuni')}
+                      options={tenants.map(t => ({ value: t.ID_Penghuni, label: t.Nama, subLabel: t.No_HP }))}
+                      placeholder="Pilih Penghuni"
+                    />
                   </TableCell>
                   <TableCell><Input type="date" value={editFormData.Tgl_Masuk || ''} onChange={e => set('Tgl_Masuk')(e.target.value)} className="h-10 rounded-xl" /></TableCell>
                   <TableCell><Input type="date" value={editFormData.Tgl_DP || ''} onChange={e => set('Tgl_DP')(e.target.value)} className="h-10 rounded-xl" /></TableCell>
@@ -188,16 +193,24 @@ export default function RentalManagement({
                     </TableCell>
                     <TableCell className="font-bold text-foreground">
                       {isEditing
-                        ? <select value={editFormData.ID_Kamar || ''} onChange={e => set('ID_Kamar')(e.target.value)} className="w-full bg-white border border-border text-foreground p-1 rounded-lg h-9 text-xs font-bold">
-                            {rooms.map(r => <option key={r.ID_Kamar} value={r.ID_Kamar}>{r.No_Kamar}</option>)}
-                          </select>
+                        ? <SearchableSelect
+                            value={editFormData.ID_Kamar || ''}
+                            onChange={set('ID_Kamar')}
+                            options={rooms.map(r => ({ value: r.ID_Kamar, label: `Kamar ${r.No_Kamar}`, subLabel: `Lantai ${r.Lantai}` }))}
+                            placeholder="Pilih Kamar"
+                            className="h-9"
+                          />
                         : (room?.No_Kamar || rental.ID_Kamar)}
                     </TableCell>
                     <TableCell className="font-bold text-foreground">
                       {isEditing
-                        ? <select value={editFormData.ID_Penghuni || ''} onChange={e => set('ID_Penghuni')(e.target.value)} className="w-full bg-white border border-border text-foreground p-1 rounded-lg h-9 text-xs font-bold">
-                            {tenants.map(t => <option key={t.ID_Penghuni} value={t.ID_Penghuni}>{t.Nama}</option>)}
-                          </select>
+                        ? <SearchableSelect
+                            value={editFormData.ID_Penghuni || ''}
+                            onChange={set('ID_Penghuni')}
+                            options={tenants.map(t => ({ value: t.ID_Penghuni, label: t.Nama, subLabel: t.No_HP }))}
+                            placeholder="Pilih Penghuni"
+                            className="h-9"
+                          />
                         : (tenant?.Nama || rental.ID_Penghuni)}
                     </TableCell>
                     <TableCell className="font-medium text-muted-foreground">

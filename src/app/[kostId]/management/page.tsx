@@ -149,8 +149,8 @@ export default function ManagementPage() {
             <TabContentWrapper key="rentals-tab" value="rentals">
               <RentalManagement
                 rentals={rentals}
-                rooms={allRooms}
-                tenants={allTenants}
+                rooms={rooms}
+                tenants={tenants}
                 editingId={editingId}
                 editFormData={editFormData}
                 isAdding={isAdding}
