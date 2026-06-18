@@ -1,22 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 import { getSheetData, batchAppendSheetData, batchUpdateSheetData } from '@/lib/google-sheets';
+import { requireSession, errorResponse, logError } from '@/lib/apiUtils';
 
 type RouteContext = { params: Promise<{ sheetName: string }> };
 
-async function requireSession() {
-  return getServerSession(authOptions);
-}
-
 /**
  * POST /api/data/[sheetName]/batch
- * Body: { rows: any[] }  — each row is a plain object matching the sheet schema
- * Atomically appends all rows. Returns { success, count } or { success, error, message, failedRows? }
+ * Body: { rows: any[] }
  */
 export async function POST(req: NextRequest, context: RouteContext) {
   const session = await requireSession();
-  if (!session) return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
+  if (!session) return errorResponse('Unauthorized', 401);
 
   try {
     const { sheetName } = await context.params;
@@ -24,16 +18,18 @@ export async function POST(req: NextRequest, context: RouteContext) {
     const objectRows: any[] = body.rows;
 
     if (!Array.isArray(objectRows) || objectRows.length === 0) {
-      return NextResponse.json({ success: false, error: 'VALIDATION_ERROR', message: 'rows must be a non-empty array' }, { status: 400 });
+      return NextResponse.json({
+        success: false,
+        error: 'VALIDATION_ERROR',
+        message: 'rows must be a non-empty array',
+      }, { status: 400 });
     }
 
-    // Resolve headers from the sheet to maintain column order
-    const sheetData = await getSheetData(sheetName);
+    const sheetData = await getSheetData<any>(sheetName);
     const headers = sheetData.length > 0
       ? Object.keys(sheetData[0])
       : Object.keys(objectRows[0]);
 
-    // Validate rows — find empty required entries
     const failedRows: number[] = [];
     objectRows.forEach((row, idx) => {
       const hasData = Object.values(row).some(val => val !== '' && val !== null && val !== undefined);
@@ -49,15 +45,20 @@ export async function POST(req: NextRequest, context: RouteContext) {
       }, { status: 400 });
     }
 
-    // Convert object rows → array rows matching header order
     const arrayRows = objectRows.map(row =>
       headers.map(header => row[header] ?? '')
     );
 
     const { insertedCount } = await batchAppendSheetData(sheetName, arrayRows);
-    return NextResponse.json({ success: true, count: insertedCount }, { status: 201 });
+    return NextResponse.json({
+      success: true,
+      message: 'Created',
+      data: { count: insertedCount },
+      RecordCount: insertedCount,
+      count: insertedCount,
+    }, { status: 201 });
   } catch (error: any) {
-    console.error('[BATCH POST] Error:', error);
+    logError('api.data.batch', 'POST', error);
     return NextResponse.json({
       success: false,
       error: 'SHEETS_ERROR',
@@ -69,11 +70,10 @@ export async function POST(req: NextRequest, context: RouteContext) {
 /**
  * PUT /api/data/[sheetName]/batch
  * Body: { updates: [{ idField, idValue, fields: {...} }] }
- * Atomically updates all rows in one batchUpdate call.
  */
 export async function PUT(req: NextRequest, context: RouteContext) {
   const session = await requireSession();
-  if (!session) return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
+  if (!session) return errorResponse('Unauthorized', 401);
 
   try {
     const { sheetName } = await context.params;
@@ -81,13 +81,23 @@ export async function PUT(req: NextRequest, context: RouteContext) {
     const updates: { idField: string; idValue: string; fields: Record<string, string> }[] = body.updates;
 
     if (!Array.isArray(updates) || updates.length === 0) {
-      return NextResponse.json({ success: false, error: 'VALIDATION_ERROR', message: 'updates must be a non-empty array' }, { status: 400 });
+      return NextResponse.json({
+        success: false,
+        error: 'VALIDATION_ERROR',
+        message: 'updates must be a non-empty array',
+      }, { status: 400 });
     }
 
     const { updatedCount } = await batchUpdateSheetData(sheetName, updates);
-    return NextResponse.json({ success: true, count: updatedCount }, { status: 200 });
+    return NextResponse.json({
+      success: true,
+      message: 'Updated',
+      data: { count: updatedCount },
+      RecordCount: updatedCount,
+      count: updatedCount,
+    }, { status: 200 });
   } catch (error: any) {
-    console.error('[BATCH PUT] Error:', error);
+    logError('api.data.batch', 'PUT', error);
     return NextResponse.json({
       success: false,
       error: 'SHEETS_ERROR',

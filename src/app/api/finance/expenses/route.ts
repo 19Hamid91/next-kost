@@ -1,13 +1,13 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
-import { getSheetData, appendSheetData, deleteSheetData } from '@/lib/google-sheets';
+import { NextRequest } from 'next/server';
+import { getSheetData, appendSheetData } from '@/lib/google-sheets';
+import { requireSession, successResponse, errorResponse, logError } from '@/lib/apiUtils';
+import { Expense } from '@/types';
 
 const VALID_CATEGORIES = ['electricity', 'water', 'internet', 'repair', 'other'];
 
 export async function GET(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session) return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
+  const session = await requireSession();
+  if (!session) return errorResponse('Unauthorized', 401);
 
   try {
     const { searchParams } = new URL(req.url);
@@ -20,54 +20,49 @@ export async function GET(req: NextRequest) {
     const periodStart = new Date(targetYear, targetMonth - 1, 1);
     const periodEnd = new Date(targetYear, targetMonth, 0, 23, 59, 59);
 
-    const allExpenses = await getSheetData('Expenses');
+    const allExpenses = await getSheetData<Expense>('Expenses');
 
-    const filtered = allExpenses.filter((expense: any) => {
+    const filtered = allExpenses.filter((expense) => {
       if (!expense.Date) return false;
       const date = new Date(expense.Date);
       return date >= periodStart && date <= periodEnd;
     });
 
-    // Sort newest first
-    filtered.sort((expenseA: any, expenseB: any) =>
+    filtered.sort((expenseA, expenseB) =>
       new Date(expenseB.Date).getTime() - new Date(expenseA.Date).getTime()
     );
 
     const totalCount = filtered.length;
     const paginated = filtered.slice((page - 1) * limit, page * limit);
 
-    return NextResponse.json({
-      success: true,
-      message: 'OK',
-      RecordCount: totalCount,
-      data: paginated,
-      pagination: { page, limit, totalPages: Math.ceil(totalCount / limit) },
-    });
+    // Standard response standard from User Rule 5 requires: success, message, data, RecordCount
+    // SuccessResponse helper provides exactly this
+    return successResponse(paginated, totalCount);
   } catch (error: any) {
-    console.error('[GET /api/finance/expenses]', error);
-    return NextResponse.json({ success: false, message: error.message }, { status: 500 });
+    logError('api.finance.expenses', 'GET', error);
+    return errorResponse(error.message || 'Internal Server Error', 500);
   }
 }
 
 export async function POST(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session) return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
+  const session = await requireSession();
+  if (!session) return errorResponse('Unauthorized', 401);
 
   try {
     const body = await req.json();
     const { date, category, amount, notes } = body;
 
     if (!date || isNaN(new Date(date).getTime())) {
-      return NextResponse.json({ success: false, message: 'Invalid date' }, { status: 400 });
+      return errorResponse('Invalid date', 400);
     }
     if (!VALID_CATEGORIES.includes(category)) {
-      return NextResponse.json({ success: false, message: `Category must be one of: ${VALID_CATEGORIES.join(', ')}` }, { status: 400 });
+      return errorResponse(`Category must be one of: ${VALID_CATEGORIES.join(', ')}`, 400);
     }
     if (!amount || !Number.isInteger(Number(amount)) || Number(amount) <= 0) {
-      return NextResponse.json({ success: false, message: 'Amount must be a positive integer' }, { status: 400 });
+      return errorResponse('Amount must be a positive integer', 400);
     }
 
-    const newExpense = {
+    const newExpense: Expense = {
       ID_Expense: `EXP-${Date.now()}`,
       Date: date,
       Category: category,
@@ -76,11 +71,11 @@ export async function POST(req: NextRequest) {
       Created_At: new Date().toISOString(),
     };
 
-    await appendSheetData('Expenses', newExpense);
+    await appendSheetData('Expenses', newExpense as any);
 
-    return NextResponse.json({ success: true, message: 'Created', RecordCount: 1, data: newExpense });
+    return successResponse(newExpense, 1, 201);
   } catch (error: any) {
-    console.error('[POST /api/finance/expenses]', error);
-    return NextResponse.json({ success: false, message: error.message }, { status: 500 });
+    logError('api.finance.expenses', 'POST', error);
+    return errorResponse(error.message || 'Internal Server Error', 500);
   }
 }

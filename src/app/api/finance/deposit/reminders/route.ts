@@ -1,12 +1,13 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { NextRequest } from 'next/server';
 import { getSheetData } from '@/lib/google-sheets';
 import { calculateDueDate, parseDurasiUnit } from '@/lib/dateUtils';
+import { requireSession, successResponse, errorResponse, logError } from '@/lib/apiUtils';
+import { Rental, Room, Tenant } from '@/types';
+import { DepositReminder } from '@/types/finance';
 
 export async function GET(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session) return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
+  const session = await requireSession();
+  if (!session) return errorResponse('Unauthorized', 401);
 
   try {
     const today = new Date();
@@ -15,13 +16,13 @@ export async function GET(req: NextRequest) {
     sevenDaysLater.setDate(today.getDate() + 7);
 
     const [rentals, rooms, tenants] = await Promise.all([
-      getSheetData('Transaksi_Sewa'),
-      getSheetData('Master_Kamar'),
-      getSheetData('Master_Penghuni'),
+      getSheetData<Rental>('Transaksi_Sewa'),
+      getSheetData<Room>('Master_Kamar'),
+      getSheetData<Tenant>('Master_Penghuni'),
     ]);
 
-    const reminders = rentals
-      .filter((rental: any) => {
+    const reminders: DepositReminder[] = rentals
+      .filter((rental) => {
         if (rental.Deposit_Status === 'refunded') return false;
         if (!rental.Tgl_Masuk) return false;
 
@@ -30,17 +31,15 @@ export async function GET(req: NextRequest) {
         const unit = parseDurasiUnit(rental.Unit_Durasi);
         const endDate = calculateDueDate(startDate, periode, unit);
 
-        // End date within the next 7 days
         return endDate >= today && endDate <= sevenDaysLater;
       })
-      .filter((rental: any) => {
-        // No active/upcoming renewal for this tenant+room after current endDate
+      .filter((rental) => {
         const startDate = new Date(rental.Tgl_Masuk);
         const periode = parseInt(rental.Periode_Sewa) || 1;
         const unit = parseDurasiUnit(rental.Unit_Durasi);
         const endDate = calculateDueDate(startDate, periode, unit);
 
-        const hasRenewal = rentals.some((otherRental: any) => {
+        const hasRenewal = rentals.some((otherRental) => {
           if (otherRental.ID_Sewa === rental.ID_Sewa) return false;
           if (otherRental.ID_Kamar !== rental.ID_Kamar) return false;
           if (otherRental.ID_Penghuni !== rental.ID_Penghuni) return false;
@@ -52,9 +51,9 @@ export async function GET(req: NextRequest) {
 
         return !hasRenewal;
       })
-      .map((rental: any) => {
-        const room = rooms.find((r: any) => r.ID_Kamar === rental.ID_Kamar);
-        const tenant = tenants.find((t: any) => t.ID_Penghuni === rental.ID_Penghuni);
+      .map((rental) => {
+        const room = rooms.find((r) => r.ID_Kamar === rental.ID_Kamar);
+        const tenant = tenants.find((t) => t.ID_Penghuni === rental.ID_Penghuni);
 
         const startDate = new Date(rental.Tgl_Masuk);
         const periode = parseInt(rental.Periode_Sewa) || 1;
@@ -72,11 +71,11 @@ export async function GET(req: NextRequest) {
           daysUntilEnd,
         };
       })
-      .sort((reminderA: any, reminderB: any) => reminderA.daysUntilEnd - reminderB.daysUntilEnd);
+      .sort((reminderA, reminderB) => reminderA.daysUntilEnd - reminderB.daysUntilEnd);
 
-    return NextResponse.json({ success: true, message: 'OK', RecordCount: reminders.length, data: reminders });
+    return successResponse(reminders, reminders.length);
   } catch (error: any) {
-    console.error('[GET /api/finance/deposit/reminders]', error);
-    return NextResponse.json({ success: false, message: error.message }, { status: 500 });
+    logError('api.finance.deposit.reminders', 'GET', error);
+    return errorResponse(error.message || 'Internal Server Error', 500);
   }
 }

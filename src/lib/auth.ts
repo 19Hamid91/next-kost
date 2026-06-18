@@ -2,6 +2,12 @@ import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { getSheetData } from "./google-sheets";
 
+interface MasterUser {
+  Username: string;
+  Password: string;
+  Nama?: string;
+}
+
 export const authOptions: NextAuthOptions = {
   providers: [
     CredentialsProvider({
@@ -14,22 +20,17 @@ export const authOptions: NextAuthOptions = {
         if (!credentials?.username || !credentials?.password) return null;
 
         try {
-          const users = await getSheetData('Master_User');
-          console.log("Auth Debug - Credentials:", { username: credentials.username });
-          console.log("Auth Debug - Users from Sheet:", users);
-
-          const user = users.find((u: any) =>
+          const users = await getSheetData<MasterUser>('Master_User');
+          const user = users.find((u) =>
             u.Username === credentials.username && u.Password === credentials.password
           );
 
           if (user) {
-            console.log("Auth Debug - User found:", user.Username);
             return { id: user.Username, name: user.Nama || user.Username, email: user.Username };
           }
-          console.log("Auth Debug - No match found");
           return null;
         } catch (error) {
-          console.error("Auth Error:", error);
+          console.error('[Auth.authorize]', error);
           return null;
         }
       }

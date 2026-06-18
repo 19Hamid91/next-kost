@@ -1,4 +1,5 @@
 import { addDays, addWeeks, addMonths } from 'date-fns';
+import { Rental } from '@/types';
 
 export type DurasiUnit = 'Hari' | 'Minggu' | 'Bulan';
 
@@ -34,15 +35,11 @@ export function parseDurasiUnit(raw?: string): DurasiUnit {
 
 /**
  * Resolve Status_Sewa from a rental row.
- * Falls back to Status_Aktif for legacy rows that haven't been migrated yet.
  */
-export function resolveStatusSewa(rental: any): 'AKTIF' | 'SELESAI' | 'BOOKING' | null {
+export function resolveStatusSewa(rental: Rental | null | undefined): 'AKTIF' | 'SELESAI' | 'BOOKING' | null {
   if (!rental) return null;
   if (rental.Status_Sewa === 'AKTIF' || rental.Status_Sewa === 'SELESAI' || rental.Status_Sewa === 'BOOKING') {
     return rental.Status_Sewa;
   }
-  // Legacy fallback
-  if (rental.Status_Aktif === 'TRUE') return 'AKTIF';
-  if (rental.Status_Aktif === 'FALSE') return 'SELESAI';
   return null;
 }
