@@ -3,7 +3,7 @@
 import { useParams, useRouter, usePathname } from 'next/navigation';
 import { useSession, signOut } from 'next-auth/react';
 import useSWR from 'swr';
-import { LogOut, Building2, LayoutDashboard, Settings, ChevronLeft, Loader2, Menu } from 'lucide-react';
+import { LogOut, Building2, LayoutDashboard, Settings, ChevronLeft, Loader2, Menu, Wallet } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -26,6 +26,7 @@ export default function Header() {
   const navItems = [
     { label: 'Dashboard', icon: LayoutDashboard, href: `/${kostId}/dashboard` },
     { label: 'Manajemen', icon: Settings, href: `/${kostId}/management` },
+    { label: 'Finance', icon: Wallet, href: `/${kostId}/finance` },
   ];
 
 
