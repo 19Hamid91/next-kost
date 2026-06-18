@@ -13,7 +13,22 @@ export default function DashboardPage() {
     const params = useParams();
     const kostId = params.kostId as string;
 
-    const { isLoading, stats, currentKost, filteredRooms, allTenants, allRentals, selectedRoom, selectedTenant, selectedRental, isSheetOpen, handleRoomClick, closeSheet } = useDashboard(kostId);
+    const {
+        isLoading,
+        stats,
+        currentKost,
+        filteredRooms,
+        roomsWithOccupancy,
+        allTenants,
+        allRentals,
+        selectedRoom,
+        selectedTenant,
+        selectedRental,
+        selectedOccupancy,
+        isSheetOpen,
+        handleRoomClick,
+        closeSheet,
+    } = useDashboard(kostId);
 
     if (isLoading) {
         return (
@@ -94,9 +109,7 @@ export default function DashboardPage() {
                         </div>
                     ) : (
                         <RoomGrid
-                            rooms={filteredRooms}
-                            tenants={allTenants}
-                            rentals={allRentals}
+                            roomsWithOccupancy={roomsWithOccupancy}
                             onRoomClick={handleRoomClick}
                         />
                     )}
@@ -107,6 +120,7 @@ export default function DashboardPage() {
                 room={selectedRoom}
                 tenant={selectedTenant}
                 rental={selectedRental}
+                upcomingBookings={selectedOccupancy?.upcomingBookings}
                 isOpen={isSheetOpen}
                 onClose={closeSheet}
             />
