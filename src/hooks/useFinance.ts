@@ -3,53 +3,11 @@
 import { useState, useCallback } from 'react';
 import useSWR, { mutate } from 'swr';
 import { toast } from 'sonner';
+import { fetcher } from '@/lib/fetcher';
+import { Expense as ExpenseRow, Rental as DepositRow, Room, Tenant, ApiResponse } from '@/types';
+import { FinanceSummary, DepositReminder } from '@/types/finance';
 
-const fetcher = (url: string) => fetch(url).then((res) => res.json());
-
-export interface FinanceSummary {
-  totalRentIncome: number;
-  totalDpReceived: number;
-  totalDpForfeited: number;
-  totalExpenses: number;
-  totalDepositRefunded: number;
-  netCashflow: number;
-  month: number;
-  year: number;
-}
-
-export interface ExpenseRow {
-  ID_Expense: string;
-  Date: string;
-  Category: string;
-  Amount: string;
-  Notes: string;
-  Created_At: string;
-}
-
-export interface DepositRow {
-  ID_Sewa: string;
-  ID_Kamar: string;
-  ID_Penghuni: string;
-  Tgl_Masuk: string;
-  Nominal_Deposit: string;
-  Deposit_Status: string;
-  Deposit_Refunded_At: string;
-  DP_Amount: string;
-  DP_Status: string;
-  Monthly_Rent: string;
-  Status_Sewa: string;
-  Periode_Sewa: string;
-  Unit_Durasi: string;
-}
-
-export interface DepositReminder {
-  bookingId: string;
-  tenantName: string;
-  roomNumber: string;
-  endDate: string;
-  depositAmount: number;
-  daysUntilEnd: number;
-}
+export type { FinanceSummary, DepositReminder, ExpenseRow, DepositRow };
 
 export function useFinance(kostId: string) {
   const now = new Date();
@@ -65,12 +23,12 @@ export function useFinance(kostId: string) {
   const roomsKey = `/api/data/Master_Kamar`;
   const tenantsKey = `/api/data/Master_Penghuni`;
 
-  const { data: summaryData, isLoading: summaryLoading } = useSWR<{ data: FinanceSummary }>(summaryKey, fetcher);
-  const { data: expensesData, isLoading: expensesLoading } = useSWR<{ data: ExpenseRow[]; RecordCount: number }>(expensesKey, fetcher);
-  const { data: remindersData } = useSWR<{ data: DepositReminder[] }>(remindersKey, fetcher);
-  const { data: rentalsData } = useSWR<{ data: DepositRow[] }>(rentalsKey, fetcher);
-  const { data: roomsData } = useSWR<{ data: any[] }>(roomsKey, fetcher);
-  const { data: tenantsData } = useSWR<{ data: any[] }>(tenantsKey, fetcher);
+  const { data: summaryData, isLoading: summaryLoading } = useSWR<ApiResponse<FinanceSummary>>(summaryKey, fetcher);
+  const { data: expensesData, isLoading: expensesLoading } = useSWR<ApiResponse<ExpenseRow[]>>(expensesKey, fetcher);
+  const { data: remindersData } = useSWR<ApiResponse<DepositReminder[]>>(remindersKey, fetcher);
+  const { data: rentalsData } = useSWR<ApiResponse<DepositRow[]>>(rentalsKey, fetcher);
+  const { data: roomsData } = useSWR<ApiResponse<Room[]>>(roomsKey, fetcher);
+  const { data: tenantsData } = useSWR<ApiResponse<Tenant[]>>(tenantsKey, fetcher);
 
   const summary = summaryData?.data ?? null;
   const expenses = expensesData?.data ?? [];
@@ -79,12 +37,11 @@ export function useFinance(kostId: string) {
   const allRooms = roomsData?.data ?? [];
   const allTenants = tenantsData?.data ?? [];
 
-  // Filter rentals to this kost's rooms
   const kostRoomIds = allRooms
-    .filter((room: any) => room.ID_Kost === kostId)
-    .map((room: any) => room.ID_Kamar);
+    .filter((room) => room.ID_Kost === kostId)
+    .map((room) => room.ID_Kamar);
 
-  const depositRows = allRentals.filter((rental: DepositRow) =>
+  const depositRows = allRentals.filter((rental) =>
     kostRoomIds.includes(rental.ID_Kamar)
   );
 
@@ -100,7 +57,6 @@ export function useFinance(kostId: string) {
     else setSelectedMonth(prev => prev + 1);
   }, [selectedMonth]);
 
-  // Add expense
   const addExpense = useCallback(async (payload: {
     date: string;
     category: string;
@@ -132,7 +88,6 @@ export function useFinance(kostId: string) {
     }
   }, [expensesKey, summaryKey]);
 
-  // Delete expense
   const deleteExpense = useCallback(async (expenseId: string) => {
     setActionLoading(`delete-${expenseId}`);
     try {
@@ -152,7 +107,6 @@ export function useFinance(kostId: string) {
     }
   }, [expensesKey, summaryKey]);
 
-  // Refund deposit
   const refundDeposit = useCallback(async (bookingId: string) => {
     setActionLoading(`refund-${bookingId}`);
     try {

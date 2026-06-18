@@ -3,15 +3,15 @@
 import { useState } from 'react';
 import useSWR, { mutate } from 'swr';
 import { toast } from 'sonner';
-
-const fetcher = (url: string) => fetch(url).then((res) => res.json());
+import { fetcher } from '@/lib/fetcher';
+import { Kost, ApiResponse } from '@/types';
 
 export function useKosts() {
-  const { data: kostsData, isLoading } = useSWR('/api/data/Master_Kost', fetcher);
+  const { data: kostsData, isLoading } = useSWR<ApiResponse<Kost[]>>('/api/data/Master_Kost', fetcher);
   const kosts = kostsData?.data || [];
 
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editFormData, setEditFormData] = useState<any>({});
+  const [editFormData, setEditFormData] = useState<Partial<Kost>>({});
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   const startAdding = () => {
@@ -19,7 +19,7 @@ export function useKosts() {
     setEditFormData({});
   };
 
-  const startEditing = (kost: any) => {
+  const startEditing = (kost: Kost) => {
     setEditingId(kost.ID_Kost);
     setEditFormData(kost);
   };
@@ -34,7 +34,7 @@ export function useKosts() {
     setActionLoading('save');
     try {
       const method = isAdding ? 'POST' : 'PUT';
-      let payload = { ...editFormData };
+      const payload = { ...editFormData };
 
       if (isAdding && !payload.ID_Kost) {
         const slug = payload.Nama_Kost?.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]+/g, '');

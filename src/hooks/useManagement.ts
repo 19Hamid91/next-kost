@@ -3,42 +3,33 @@
 import { useState } from 'react';
 import useSWR, { mutate } from 'swr';
 import { toast } from 'sonner';
-import { resolveStatusSewa, calculateDueDate, parseDurasiUnit } from '@/lib/dateUtils';
-
-const fetcher = (url: string) => fetch(url).then((res) => res.json());
+import { resolveStatusSewa } from '@/lib/dateUtils';
+import { fetcher } from '@/lib/fetcher';
+import { formatPhone } from '@/lib/formatPhone';
+import { checkRoomOverlap, checkTenantOverlap } from '@/lib/rentalValidation';
+import { Room, Tenant, Rental, ApiResponse } from '@/types';
 
 export function useManagement(kostId: string) {
-  const { data: roomsData, isLoading: roomsLoading } = useSWR('/api/data/Master_Kamar', fetcher);
-  const { data: tenantsData, isLoading: tenantsLoading } = useSWR('/api/data/Master_Penghuni', fetcher);
-  const { data: rentalsData, isLoading: rentalsLoading } = useSWR('/api/data/Transaksi_Sewa', fetcher);
+  const { data: roomsData } = useSWR<ApiResponse<Room[]>>('/api/data/Master_Kamar', fetcher);
+  const { data: tenantsData } = useSWR<ApiResponse<Tenant[]>>('/api/data/Master_Penghuni', fetcher);
+  const { data: rentalsData } = useSWR<ApiResponse<Rental[]>>('/api/data/Transaksi_Sewa', fetcher);
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editFormData, setEditFormData] = useState<any>({});
   const [isAdding, setIsAdding] = useState(false);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
-
-  // Bulk selection state
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
   const allRooms = roomsData?.data || [];
   const allTenants = tenantsData?.data || [];
   const allRentals = rentalsData?.data || [];
 
-  const rooms = allRooms.filter((room: any) => room.ID_Kost === kostId);
-  const tenants = allTenants.filter((tenant: any) => tenant.ID_Kost === kostId || !tenant.ID_Kost);
-  const rentals = allRentals.filter((rental: any) => {
-    const room = allRooms.find((rm: any) => rm.ID_Kamar === rental.ID_Kamar);
+  const rooms = allRooms.filter((room) => room.ID_Kost === kostId);
+  const tenants = allTenants.filter((tenant) => tenant.ID_Kost === kostId || !tenant.ID_Kost);
+  const rentals = allRentals.filter((rental) => {
+    const room = allRooms.find((rm) => rm.ID_Kamar === rental.ID_Kamar);
     return room?.ID_Kost === kostId || rental.ID_Kost === kostId;
   });
-
-  const formatPhone = (phone: string) => {
-    if (!phone) return '';
-    let cleaned = String(phone).replace(/\D/g, '');
-    if (cleaned.startsWith('0')) return '62' + cleaned.substring(1);
-    return cleaned;
-  };
-
-  // ── Single item CRUD ────────────────────────────────────────────────
 
   const handleEdit = (item: any, idField: string) => {
     setEditingId(item[idField]);
@@ -62,7 +53,7 @@ export function useManagement(kostId: string) {
     setActionLoading('save');
     try {
       const method = isAdding ? 'POST' : 'PUT';
-      let payload = { ...editFormData };
+      const payload = { ...editFormData };
       payload.ID_Kost = kostId;
 
       if (sheetName === 'Transaksi_Sewa') {
@@ -77,69 +68,30 @@ export function useManagement(kostId: string) {
           return;
         }
 
-        // Check for date-range overlap: new booking must not overlap existing AKTIF/BOOKING rentals
         const newStatus = payload.Status_Sewa || (payload.Status_Aktif === 'TRUE' ? 'AKTIF' : 'SELESAI');
         if (newStatus === 'AKTIF' || newStatus === 'BOOKING') {
-          const newStartDate = payload.Tgl_Masuk ? new Date(payload.Tgl_Masuk) : new Date();
-          const newPeriode = parseInt(payload.Periode_Sewa) || 1;
-          const newUnit = parseDurasiUnit(payload.Unit_Durasi);
-          const newEndDate = calculateDueDate(newStartDate, newPeriode, newUnit);
-
-          const roomConflict = allRentals.find((rental: any) => {
-            if (!isAdding && rental.ID_Sewa === editingId) return false;
-            if (rental.ID_Kamar !== payload.ID_Kamar) return false;
-
-            const status = resolveStatusSewa(rental);
-            if (status !== 'AKTIF' && status !== 'BOOKING') return false;
-
-            const existingStart = rental.Tgl_Masuk ? new Date(rental.Tgl_Masuk) : null;
-            if (!existingStart) return true; // no date data — block to be safe
-
-            const existingPeriode = parseInt(rental.Periode_Sewa) || 1;
-            const existingUnit = parseDurasiUnit(rental.Unit_Durasi);
-            const existingEnd = calculateDueDate(existingStart, existingPeriode, existingUnit);
-
-            // Overlap: newStart <= existingEnd AND newEnd > existingStart
-            // <= because the room is occupied through the end date (next tenant can start day after)
-            return newStartDate <= existingEnd && newEndDate > existingStart;
+          const roomConflict = checkRoomOverlap({
+            newRental: payload,
+            allRentals,
+            editingId,
+            isAdding,
           });
 
-          if (roomConflict) {
-            const existingStart = roomConflict.Tgl_Masuk ? new Date(roomConflict.Tgl_Masuk) : new Date();
-            const existingEnd = calculateDueDate(
-              existingStart,
-              parseInt(roomConflict.Periode_Sewa) || 1,
-              parseDurasiUnit(roomConflict.Unit_Durasi)
-            );
-            const availableDate = new Date(existingEnd);
-            availableDate.setDate(availableDate.getDate() + 1);
-            const availableDateStr = availableDate.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
-            const endDateStr = existingEnd.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
-            toast.error(`Kamar sudah terisi hingga ${endDateStr}. Booking dapat dilakukan mulai ${availableDateStr}.`);
+          if (roomConflict.hasConflict) {
+            toast.error(roomConflict.message);
             setActionLoading(null);
             return;
           }
 
-          const tenantConflict = allRentals.find((rental: any) => {
-            if (!isAdding && rental.ID_Sewa === editingId) return false;
-            if (rental.ID_Penghuni !== payload.ID_Penghuni) return false;
-
-            const status = resolveStatusSewa(rental);
-            if (status !== 'AKTIF' && status !== 'BOOKING') return false;
-
-            const existingStart = rental.Tgl_Masuk ? new Date(rental.Tgl_Masuk) : null;
-            if (!existingStart) return true;
-
-            const existingPeriode = parseInt(rental.Periode_Sewa) || 1;
-            const existingUnit = parseDurasiUnit(rental.Unit_Durasi);
-            const existingEnd = calculateDueDate(existingStart, existingPeriode, existingUnit);
-
-            return newStartDate <= existingEnd && newEndDate > existingStart;
+          const tenantConflict = checkTenantOverlap({
+            newRental: payload,
+            allRentals,
+            editingId,
+            isAdding,
           });
 
-          if (tenantConflict) {
-            const tenantStatus = resolveStatusSewa(tenantConflict);
-            toast.error(`Penghuni sudah menyewa kamar lain dengan status ${tenantStatus} pada periode yang sama.`);
+          if (tenantConflict.hasConflict) {
+            toast.error(tenantConflict.message);
             setActionLoading(null);
             return;
           }
@@ -150,7 +102,6 @@ export function useManagement(kostId: string) {
         payload[idField] = `${sheetName[0]}${Date.now()}`;
       }
 
-      // Migrate Status_Aktif → Status_Sewa on save
       if (sheetName === 'Transaksi_Sewa' && payload.Status_Aktif !== undefined) {
         payload.Status_Sewa = payload.Status_Aktif === 'TRUE' ? 'AKTIF' : 'SELESAI';
         delete payload.Status_Aktif;
@@ -201,19 +152,15 @@ export function useManagement(kostId: string) {
     }
   };
 
-  // ── Bulk selection ──────────────────────────────────────────────────
-
   const toggleSelect = (id: string) => {
-    setSelectedIds(prev =>
-      prev.includes(id) ? prev.filter(existingId => existingId !== id) : [...prev, id]
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((existingId) => existingId !== id) : [...prev, id]
     );
   };
 
   const clearSelection = () => setSelectedIds([]);
 
   const selectAll = (ids: string[]) => setSelectedIds(ids);
-
-  // ── Bulk update via batch API ───────────────────────────────────────
 
   const handleBulkUpdate = async (
     sheetName: string,
@@ -223,8 +170,7 @@ export function useManagement(kostId: string) {
   ): Promise<boolean> => {
     setActionLoading('bulk');
 
-    // Optimistic update
-    const updates = selectedIds.map(idValue => ({ idField, idValue, fields }));
+    const updates = selectedIds.map((idValue) => ({ idField, idValue, fields }));
 
     try {
       const res = await fetch(`/api/data/${sheetName}/batch`, {
@@ -242,7 +188,7 @@ export function useManagement(kostId: string) {
         return true;
       } else {
         toast.error(result.message || 'Gagal memperbarui data');
-        mutate(`/api/data/${sheetName}`); // revalidate to revert
+        mutate(`/api/data/${sheetName}`);
         return false;
       }
     } catch (error: any) {

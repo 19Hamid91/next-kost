@@ -5,8 +5,9 @@ import useSWR, { mutate } from 'swr';
 import { toast } from 'sonner';
 import { parseISO } from 'date-fns';
 import { calculateDueDate, parseDurasiUnit } from '@/lib/dateUtils';
-
-const fetcher = (url: string) => fetch(url).then(res => res.json());
+import { fetcher } from '@/lib/fetcher';
+import { formatPhone } from '@/lib/formatPhone';
+import { Room, Tenant, Rental, ApiResponse } from '@/types';
 
 export type SheetMode = 'view' | 'sewa' | 'renew';
 export type TenantInputMode = 'new' | 'existing';
@@ -14,12 +15,12 @@ export type TenantInputMode = 'new' | 'existing';
 interface SewaFormData {
   Nama: string;
   No_HP: string;
-  Bawa_Mobil: string;
+  Bawa_Mobil: 'Ya' | 'Tidak';
   Kontak_Darurat: string;
   Tgl_Masuk: string;
   Tgl_DP: string;
   Periode_Sewa: string;
-  Unit_Durasi: string;
+  Unit_Durasi: 'Hari' | 'Minggu' | 'Bulan';
   Nominal_Deposit: string;
 }
 
@@ -35,17 +36,10 @@ const defaultSewaForm: SewaFormData = {
   Nominal_Deposit: '0',
 };
 
-const formatPhone = (phone: string) => {
-  if (!phone) return '';
-  const cleaned = phone.replace(/\D/g, '');
-  if (cleaned.startsWith('0')) return '62' + cleaned.substring(1);
-  return cleaned;
-};
-
 export function useTenantSheet(
-  room: any,
-  tenant: any,
-  rental: any,
+  room: Room | null,
+  tenant: Tenant | null,
+  rental: Rental | null,
   isOpen: boolean,
   onClose: () => void
 ) {
@@ -56,8 +50,8 @@ export function useTenantSheet(
   const [renewMonths, setRenewMonths] = useState('1');
   const [sewaForm, setSewaForm] = useState<SewaFormData>(defaultSewaForm);
 
-  const { data: tenantsData } = useSWR(isOpen ? '/api/data/Master_Penghuni' : null, fetcher);
-  const allTenants: any[] = tenantsData?.data || [];
+  const { data: tenantsData } = useSWR<ApiResponse<Tenant[]>>(isOpen ? '/api/data/Master_Penghuni' : null, fetcher);
+  const allTenants: Tenant[] = tenantsData?.data || [];
 
   useEffect(() => {
     if (!isOpen) return;
@@ -90,8 +84,13 @@ export function useTenantSheet(
       toast.error('Tanggal Masuk wajib diisi');
       return;
     }
+    if (!room) {
+      toast.error('Kamar tidak terdeteksi');
+      return;
+    }
 
     setLoading(true);
+    let createdTenantId: string | null = null;
     try {
       let tenantId: string;
 
@@ -120,6 +119,7 @@ export function useTenantSheet(
           }),
         });
         if (!tenantRes.ok) throw new Error((await tenantRes.json()).message || 'Gagal simpan penghuni');
+        createdTenantId = tenantId;
       }
 
       const rentalRes = await fetch('/api/data/Transaksi_Sewa', {
@@ -146,6 +146,15 @@ export function useTenantSheet(
       invalidateCache();
       onClose();
     } catch (error: any) {
+      if (createdTenantId) {
+        try {
+          await fetch(`/api/data/Master_Penghuni?idField=ID_Penghuni&idValue=${createdTenantId}`, {
+            method: 'DELETE',
+          });
+        } catch (rollbackError) {
+          console.error('[TenantSheet.handleSewa.rollback]', rollbackError);
+        }
+      }
       toast.error(error.message || 'Gagal menyimpan data');
     } finally {
       setLoading(false);
@@ -157,8 +166,13 @@ export function useTenantSheet(
       toast.error('Tanggal Masuk wajib diisi');
       return;
     }
+    if (!room) {
+      toast.error('Kamar tidak terdeteksi');
+      return;
+    }
 
     setLoading(true);
+    let createdTenantId: string | null = null;
     try {
       let tenantId: string;
 
@@ -187,6 +201,7 @@ export function useTenantSheet(
           }),
         });
         if (!tenantRes.ok) throw new Error((await tenantRes.json()).message || 'Gagal simpan penghuni');
+        createdTenantId = tenantId;
       }
 
       const rentalRes = await fetch('/api/data/Transaksi_Sewa', {
@@ -213,6 +228,15 @@ export function useTenantSheet(
       invalidateCache();
       onClose();
     } catch (error: any) {
+      if (createdTenantId) {
+        try {
+          await fetch(`/api/data/Master_Penghuni?idField=ID_Penghuni&idValue=${createdTenantId}`, {
+            method: 'DELETE',
+          });
+        } catch (rollbackError) {
+          console.error('[TenantSheet.handleBooking.rollback]', rollbackError);
+        }
+      }
       toast.error(error.message || 'Gagal menyimpan booking');
     } finally {
       setLoading(false);
@@ -220,6 +244,7 @@ export function useTenantSheet(
   };
 
   const handleCheckout = async () => {
+    if (!rental || !room) return;
     setLoading(true);
     try {
       const res = await fetch('/api/data/Transaksi_Sewa', {
@@ -242,6 +267,7 @@ export function useTenantSheet(
   };
 
   const handleActivateBooking = async () => {
+    if (!rental || !room) return;
     setLoading(true);
     try {
       const res = await fetch('/api/data/Transaksi_Sewa', {
@@ -264,6 +290,7 @@ export function useTenantSheet(
   };
 
   const handleRenew = async () => {
+    if (!rental) return;
     const additionalPeriode = parseInt(renewMonths) || 1;
     const currentPeriode = parseInt(rental?.Periode_Sewa) || 1;
     const newTotalPeriode = currentPeriode + additionalPeriode;
