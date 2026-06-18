@@ -101,3 +101,70 @@ export function checkTenantOverlap(params: {
 
   return { hasConflict: false };
 }
+
+export interface ActivationResult {
+  allowed: boolean;
+  reason?: string;
+}
+
+/**
+ * Validates whether a rental record can be set to AKTIF status.
+ * Guards ALL transitions to AKTIF (BOOKING → AKTIF and SELESAI → AKTIF),
+ * preventing premature activation or duplicate active contracts on the same room.
+ */
+export function canActivateRental(params: {
+  rental: Partial<Rental>;
+  allRentals: Rental[];
+  editingId: string | null;
+}): ActivationResult {
+  const { rental, allRentals, editingId } = params;
+
+  // Guard 1: Check-in date must not be in the future
+  if (rental.Tgl_Masuk) {
+    const checkInDate = new Date(rental.Tgl_Masuk);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    checkInDate.setHours(0, 0, 0, 0);
+
+    if (checkInDate > today) {
+      const dateStr = checkInDate.toLocaleDateString('id-ID', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+      });
+      return {
+        allowed: false,
+        reason: `Check-in belum tiba (${dateStr}). Status hanya bisa BOOKING.`,
+      };
+    }
+  }
+
+  // Guard 2: Room must not have another AKTIF contract
+  if (rental.ID_Kamar) {
+    const conflictingActive = allRentals.find((existingRental) => {
+      if (existingRental.ID_Sewa === editingId) return false; // exclude self
+      if (existingRental.ID_Kamar !== rental.ID_Kamar) return false;
+      return resolveStatusSewa(existingRental) === 'AKTIF';
+    });
+
+    if (conflictingActive) {
+      const existingStart = conflictingActive.Tgl_Masuk
+        ? new Date(conflictingActive.Tgl_Masuk)
+        : new Date();
+      const existingPeriode = parseInt(conflictingActive.Periode_Sewa || '1') || 1;
+      const existingUnit = parseDurasiUnit(conflictingActive.Unit_Durasi);
+      const existingEnd = calculateDueDate(existingStart, existingPeriode, existingUnit);
+      const endDateStr = existingEnd.toLocaleDateString('id-ID', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+      });
+      return {
+        allowed: false,
+        reason: `Kamar masih ditempati penyewa aktif hingga ${endDateStr}.`,
+      };
+    }
+  }
+
+  return { allowed: true };
+}
