@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import useSWR, { mutate } from 'swr';
 import { toast } from 'sonner';
-import { resolveStatusSewa } from '@/lib/dateUtils';
+import { resolveStatusSewa, calculateDueDate, parseDurasiUnit } from '@/lib/dateUtils';
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
@@ -77,25 +77,69 @@ export function useManagement(kostId: string) {
           return;
         }
 
-        // Check if the current payload is active or booking
+        // Check for date-range overlap: new booking must not overlap existing AKTIF/BOOKING rentals
         const newStatus = payload.Status_Sewa || (payload.Status_Aktif === 'TRUE' ? 'AKTIF' : 'SELESAI');
         if (newStatus === 'AKTIF' || newStatus === 'BOOKING') {
-          const conflict = allRentals.find((rental: any) => {
+          const newStartDate = payload.Tgl_Masuk ? new Date(payload.Tgl_Masuk) : new Date();
+          const newPeriode = parseInt(payload.Periode_Sewa) || 1;
+          const newUnit = parseDurasiUnit(payload.Unit_Durasi);
+          const newEndDate = calculateDueDate(newStartDate, newPeriode, newUnit);
+
+          const roomConflict = allRentals.find((rental: any) => {
             if (!isAdding && rental.ID_Sewa === editingId) return false;
-            
+            if (rental.ID_Kamar !== payload.ID_Kamar) return false;
+
             const status = resolveStatusSewa(rental);
             if (status !== 'AKTIF' && status !== 'BOOKING') return false;
 
-            return rental.ID_Kamar === payload.ID_Kamar || rental.ID_Penghuni === payload.ID_Penghuni;
+            const existingStart = rental.Tgl_Masuk ? new Date(rental.Tgl_Masuk) : null;
+            if (!existingStart) return true; // no date data — block to be safe
+
+            const existingPeriode = parseInt(rental.Periode_Sewa) || 1;
+            const existingUnit = parseDurasiUnit(rental.Unit_Durasi);
+            const existingEnd = calculateDueDate(existingStart, existingPeriode, existingUnit);
+
+            // Overlap: newStart <= existingEnd AND newEnd > existingStart
+            // <= because the room is occupied through the end date (next tenant can start day after)
+            return newStartDate <= existingEnd && newEndDate > existingStart;
           });
 
-          if (conflict) {
-            const status = resolveStatusSewa(conflict);
-            if (conflict.ID_Kamar === payload.ID_Kamar) {
-              toast.error(`Kamar sudah disewa dengan status ${status}`);
-            } else {
-              toast.error(`Penghuni sudah menyewa kamar lain dengan status ${status}`);
-            }
+          if (roomConflict) {
+            const existingStart = roomConflict.Tgl_Masuk ? new Date(roomConflict.Tgl_Masuk) : new Date();
+            const existingEnd = calculateDueDate(
+              existingStart,
+              parseInt(roomConflict.Periode_Sewa) || 1,
+              parseDurasiUnit(roomConflict.Unit_Durasi)
+            );
+            const availableDate = new Date(existingEnd);
+            availableDate.setDate(availableDate.getDate() + 1);
+            const availableDateStr = availableDate.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+            const endDateStr = existingEnd.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+            toast.error(`Kamar sudah terisi hingga ${endDateStr}. Booking dapat dilakukan mulai ${availableDateStr}.`);
+            setActionLoading(null);
+            return;
+          }
+
+          const tenantConflict = allRentals.find((rental: any) => {
+            if (!isAdding && rental.ID_Sewa === editingId) return false;
+            if (rental.ID_Penghuni !== payload.ID_Penghuni) return false;
+
+            const status = resolveStatusSewa(rental);
+            if (status !== 'AKTIF' && status !== 'BOOKING') return false;
+
+            const existingStart = rental.Tgl_Masuk ? new Date(rental.Tgl_Masuk) : null;
+            if (!existingStart) return true;
+
+            const existingPeriode = parseInt(rental.Periode_Sewa) || 1;
+            const existingUnit = parseDurasiUnit(rental.Unit_Durasi);
+            const existingEnd = calculateDueDate(existingStart, existingPeriode, existingUnit);
+
+            return newStartDate <= existingEnd && newEndDate > existingStart;
+          });
+
+          if (tenantConflict) {
+            const tenantStatus = resolveStatusSewa(tenantConflict);
+            toast.error(`Penghuni sudah menyewa kamar lain dengan status ${tenantStatus} pada periode yang sama.`);
             setActionLoading(null);
             return;
           }
