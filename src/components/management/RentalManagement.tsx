@@ -19,6 +19,7 @@ import {
   Home, Calendar, DollarSign, ShieldCheck
 } from 'lucide-react';
 import { resolveStatusSewa, calculateDueDate, parseDurasiUnit } from '@/lib/dateUtils';
+import { canActivateRental } from '@/lib/rentalValidation';
 import SearchableSelect from '@/components/ui/SearchableSelect';
 import { format, parseISO } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
@@ -127,6 +128,32 @@ export default function RentalManagement({
   onToggleSelect, setEditFormData,
 }: RentalManagementProps) {
   const set = (field: string) => (val: string) => setEditFormData({ ...editFormData, [field]: val });
+
+  // Reactively compute AKTIF eligibility whenever form data changes
+  const activationCheck = canActivateRental({
+    rental: editFormData,
+    allRentals: rentals,
+    editingId,
+  });
+  const canActivate = activationCheck.allowed;
+  const activationBlockReason = activationCheck.reason;
+
+  // Auto-revert to BOOKING if user changes room/date causing a conflict while AKTIF is selected
+  const handleStatusChange = (newStatus: string) => {
+    if (newStatus === 'AKTIF' && !canActivate) return; // silently block
+    set('Status_Sewa')(newStatus);
+  };
+
+  // When room or date changes and status is AKTIF but now blocked, revert to BOOKING
+  const setWithGuard = (field: string) => (val: string) => {
+    const updatedForm = { ...editFormData, [field]: val };
+    const check = canActivateRental({ rental: updatedForm, allRentals: rentals, editingId });
+    if (!check.allowed && updatedForm.Status_Sewa === 'AKTIF') {
+      setEditFormData({ ...updatedForm, Status_Sewa: 'BOOKING' });
+    } else {
+      setEditFormData(updatedForm);
+    }
+  };
 
   const handleNumericChange = (field: string) => (e: React.ChangeEvent<HTMLInputElement>) => {
     const raw = e.target.value.replace(/^0+(?=\d)/, '');
@@ -345,7 +372,7 @@ export default function RentalManagement({
                       <Label className="text-muted-foreground text-xs ml-1 font-semibold">Kamar</Label>
                       <SearchableSelect
                         value={editFormData.ID_Kamar || ''}
-                        onChange={set('ID_Kamar')}
+                        onChange={setWithGuard('ID_Kamar')}
                         options={rooms.map(r => ({ value: r.ID_Kamar, label: `Kamar ${r.No_Kamar}`, subLabel: `Lantai ${r.Lantai}` }))}
                         placeholder="Pilih Kamar"
                         className="h-12 rounded-xl"
@@ -373,7 +400,7 @@ export default function RentalManagement({
                   <div className="space-y-4">
                     <div className="space-y-2 text-left">
                       <Label className="text-muted-foreground text-xs ml-1 font-semibold">Mulai Sewa (Check-in)</Label>
-                      <Input type="date" value={editFormData.Tgl_Masuk || ''} onChange={e => set('Tgl_Masuk')(e.target.value)} className="h-12 rounded-xl" />
+                      <Input type="date" value={editFormData.Tgl_Masuk || ''} onChange={e => setWithGuard('Tgl_Masuk')(e.target.value)} className="h-12 rounded-xl" />
                     </div>
                     <div className="space-y-2 text-left">
                       <Label className="text-muted-foreground text-xs ml-1 font-semibold">Durasi Sewa</Label>
@@ -469,6 +496,15 @@ export default function RentalManagement({
                       />
                     </div>
                     <div className="space-y-2 text-left">
+                      <Label className="text-muted-foreground text-xs ml-1 font-semibold">Tanggal Bayar Deposit</Label>
+                      <Input
+                        type="date"
+                        value={editFormData.Tgl_Deposit || ''}
+                        onChange={e => set('Tgl_Deposit')(e.target.value)}
+                        className="h-12 rounded-xl"
+                      />
+                    </div>
+                    <div className="space-y-2 text-left">
                       <Label className="text-muted-foreground text-xs ml-1 font-semibold">Status Deposit</Label>
                       <Select value={editFormData.Deposit_Status || 'held'} onValueChange={set('Deposit_Status')}>
                         <SelectTrigger className="h-12 rounded-xl"><SelectValue /></SelectTrigger>
@@ -478,6 +514,7 @@ export default function RentalManagement({
                         </SelectContent>
                       </Select>
                     </div>
+
                     {editFormData.Deposit_Status === 'refunded' && (
                       <div className="col-span-2 space-y-2 text-left">
                         <Label className="text-muted-foreground text-xs ml-1 font-semibold">Tanggal Refund Deposit</Label>
@@ -491,12 +528,32 @@ export default function RentalManagement({
                     )}
                     <div className="col-span-2 space-y-2 text-left">
                       <Label className="text-muted-foreground text-xs ml-1 font-semibold">Status Sewa</Label>
-                      <Select value={editFormData.Status_Sewa || 'AKTIF'} onValueChange={set('Status_Sewa')}>
-                        <SelectTrigger className="h-12 rounded-xl"><SelectValue /></SelectTrigger>
+                      <Select
+                        value={editFormData.Status_Sewa || 'AKTIF'}
+                        onValueChange={handleStatusChange}
+                      >
+                        <SelectTrigger className={cn('h-12 rounded-xl', !canActivate && editFormData.Status_Sewa === 'AKTIF' ? 'border-amber-400 bg-amber-50/50' : '')}>
+                          <SelectValue />
+                        </SelectTrigger>
                         <SelectContent>
-                          {STATUS_OPTIONS.map(opt => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}
+                          {STATUS_OPTIONS.map(opt => (
+                            <SelectItem
+                              key={opt.value}
+                              value={opt.value}
+                              disabled={opt.value === 'AKTIF' && !canActivate}
+                              className={opt.value === 'AKTIF' && !canActivate ? 'opacity-40 cursor-not-allowed' : ''}
+                            >
+                              {opt.label}
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
+                      {!canActivate && activationBlockReason && (
+                        <p className="text-[11px] font-semibold text-amber-600 flex items-center gap-1.5 mt-1">
+                          <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
+                          {activationBlockReason}
+                        </p>
+                      )}
                     </div>
                   </div>
                 </div>
