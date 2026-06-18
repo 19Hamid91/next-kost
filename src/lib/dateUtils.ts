@@ -1,4 +1,4 @@
-import { addDays, addWeeks } from 'date-fns';
+import { addDays, addWeeks, addMonths } from 'date-fns';
 
 export type DurasiUnit = 'Hari' | 'Minggu' | 'Bulan';
 
@@ -6,7 +6,7 @@ export type DurasiUnit = 'Hari' | 'Minggu' | 'Bulan';
  * Calculate rental due date based on PRD spec:
  * - Hari  → addDays(startDate, periode)
  * - Minggu → addWeeks(startDate, periode)
- * - Bulan  → addDays(startDate, periode × 30)  [fixed 30-day month]
+ * - Bulan  → addMonths(startDate, periode)  [calendar-month, handles overflow]
  */
 export function calculateDueDate(
   startDate: Date,
@@ -20,7 +20,7 @@ export function calculateDueDate(
       return addWeeks(startDate, periode);
     case 'Bulan':
     default:
-      return addDays(startDate, periode * 30);
+      return addMonths(startDate, periode);
   }
 }
 
