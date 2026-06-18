@@ -1,66 +1,34 @@
 'use client';
 
+import { useState } from 'react';
 import {
-  Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter,
+  Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription,
 } from '@/components/ui/sheet';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from '@/components/ui/select';
-import {
-  User, Phone, Car, Clock, AlertTriangle, DoorOpen, Search,
-  UserPlus, RotateCcw, Loader2, CheckCircle, MessageCircle, CalendarClock,
+  CalendarClock, DoorOpen, Clock, AlertTriangle,
 } from 'lucide-react';
 import { isAfter, differenceInDays, format, parseISO } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { useTenantSheet } from '@/hooks/useTenantSheet';
 import ConfirmModal from '@/components/ui/ConfirmModal';
-import { useState } from 'react';
 import { calculateDueDate, parseDurasiUnit, resolveStatusSewa } from '@/lib/dateUtils';
+import { Room, Tenant, Rental } from '@/types';
+
+import TenantViewMode from './tenant-sheet/TenantViewMode';
+import TenantSewaMode from './tenant-sheet/TenantSewaMode';
+import TenantRenewMode from './tenant-sheet/TenantRenewMode';
+import UpcomingBookingsTimeline from './tenant-sheet/UpcomingBookingsTimeline';
+import TenantSheetFooter from './tenant-sheet/TenantSheetFooter';
 
 interface TenantSheetProps {
-  room: any;
-  tenant: any;
-  rental: any;
-  upcomingBookings?: Array<{ rental: any; tenant: any }>;
+  room: Room | null;
+  tenant: Tenant | null;
+  rental: Rental | null;
+  upcomingBookings?: Array<{ rental: Rental; tenant: Tenant | null }>;
   isOpen: boolean;
   onClose: () => void;
 }
-
-// ── Sub-components ─────────────────────────────────────────────────
-
-function InfoRow({ icon: Icon, label, value, iconClass = '' }: { icon: any; label: string; value: string; iconClass?: string }) {
-  return (
-    <div className="flex items-center gap-3 p-3 bg-white rounded-xl border border-border hover:border-orange-200 hover:shadow-soft transition-all duration-300 overflow-hidden">
-      <div className="w-8 h-8 rounded-lg bg-primary/5 flex items-center justify-center text-primary shrink-0">
-        <Icon className={cn('w-4 h-4', iconClass)} />
-      </div>
-      <div className="min-w-0 flex-1 flex flex-col gap-0.5">
-        <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider mb-0 leading-tight">{label}</p>
-        <p className="text-xs font-bold text-foreground truncate break-all mb-0 leading-tight">{value}</p>
-      </div>
-    </div>
-  );
-}
-
-function ContractCard({ label, value, dark = false }: { label: string; value: string; dark?: boolean }) {
-  return (
-    <div className={cn('p-4 rounded-xl flex flex-col gap-0.5 overflow-hidden', dark ? 'bg-primary text-primary-foreground shadow-lg shadow-orange-500/10' : 'bg-muted/30 border border-border')}>
-      <p className={cn('text-[9px] font-bold uppercase tracking-wider mb-0 leading-tight', dark ? 'text-white/70' : 'text-muted-foreground')}>{label}</p>
-      <p className={cn('text-xs font-bold truncate break-all mb-0 leading-tight', dark ? 'text-white' : 'text-foreground')}>{value}</p>
-    </div>
-  );
-}
-
-function SectionTitle({ children }: { children: React.ReactNode }) {
-  return <h3 className="text-[9px] font-bold uppercase tracking-[0.2em] text-muted-foreground/60 ml-1">{children}</h3>;
-}
-
-// ── Main Component ──────────────────────────────────────────────────
 
 export default function TenantSheet({ room, tenant, rental, upcomingBookings = [], isOpen, onClose }: TenantSheetProps) {
   const [showCheckoutConfirm, setShowCheckoutConfirm] = useState(false);
@@ -113,7 +81,7 @@ export default function TenantSheet({ room, tenant, rental, upcomingBookings = [
       <SheetContent className="bg-white/80 backdrop-blur-[32px] border-l border-white/20 text-foreground w-full sm:w-[540px] p-0 flex flex-col h-full shadow-2xl">
 
         {/* ── Header ── */}
-        <div className="p-10 bg-muted/30 border-b border-border relative overflow-hidden">
+        <div className="p-10 bg-muted/30 border-b border-border relative overflow-hidden text-left font-sans">
           <div className="absolute -top-24 -right-24 w-64 h-64 bg-orange-500/5 rounded-full blur-3xl" />
 
           <SheetHeader className="relative z-10 text-left">
@@ -191,393 +159,67 @@ export default function TenantSheet({ room, tenant, rental, upcomingBookings = [
         </div>
 
         {/* ── Body ── */}
-        <div className="flex-1 overflow-y-auto p-10 space-y-10">
+        <div className="flex-1 overflow-y-auto p-10 space-y-10 font-sans">
 
-          {/* VIEW MODE — Booking */}
-          {isBooked && mode === 'view' && (
-            <>
-              <section className="space-y-4">
-                <SectionTitle>Data Calon Penghuni</SectionTitle>
-                <div className="grid gap-3">
-                  <InfoRow icon={User} label="Nama Lengkap" value={tenant?.Nama || '—'} />
-                  <InfoRow icon={Phone} label="Nomor WhatsApp" value={tenant?.No_HP || '—'} />
-                  <InfoRow icon={Car} label="Kendaraan" value={tenant?.Bawa_Mobil === 'Ya' ? 'Mobil' : '—'} />
-                  {tenant?.Kontak_Darurat && (
-                    <InfoRow icon={Phone} label="Kontak Darurat" value={tenant.Kontak_Darurat} iconClass="text-destructive" />
-                  )}
-                </div>
-              </section>
-              <section className="space-y-4">
-                <SectionTitle>Detail Booking</SectionTitle>
-                <div className="grid grid-cols-2 gap-3">
-                  <ContractCard label="Check-in" value={rental?.Tgl_Masuk ? format(parseISO(rental.Tgl_Masuk), 'd MMM yyyy', { locale: localeId }) : '—'} />
-                  <ContractCard label="Tgl. DP" value={rental?.Tgl_DP ? format(parseISO(rental.Tgl_DP), 'd MMM yyyy', { locale: localeId }) : '—'} />
-                  <ContractCard label="Periode" value={getPeriodeLabel(rental?.Periode_Sewa, rental?.Unit_Durasi)} />
-                  <ContractCard label="Deposit" value={`Rp ${parseInt(rental?.Nominal_Deposit || '0').toLocaleString('id-ID')}`} />
-                </div>
-              </section>
-            </>
+          {/* VIEW MODE */}
+          {mode === 'view' && (
+            <TenantViewMode
+              room={room}
+              tenant={tenant}
+              rental={rental}
+              isBooked={isBooked}
+              rentalStatus={rentalStatus}
+              getPeriodeLabel={getPeriodeLabel}
+              waReminderUrl={waReminderUrl}
+            />
           )}
 
-          {/* VIEW MODE — Active tenant */}
-          {tenant && mode === 'view' && !isBooked && (
-            <>
-              <section className="space-y-4">
-                <SectionTitle>Data Penghuni</SectionTitle>
-                <div className="grid gap-3">
-                  <InfoRow icon={User} label="Nama Lengkap" value={tenant.Nama} />
-                  <InfoRow icon={Phone} label="Nomor WhatsApp" value={tenant.No_HP} />
-                  <InfoRow icon={Car} label="Kendaraan" value={tenant.Bawa_Mobil === 'Ya' ? 'Mobil' : '—'} />
-                  {tenant.Kontak_Darurat && (
-                    <InfoRow icon={Phone} label="Kontak Darurat" value={tenant.Kontak_Darurat} iconClass="text-destructive" />
-                  )}
-                </div>
-              </section>
-
-              <section className="space-y-4">
-                <SectionTitle>Detail Kontrak</SectionTitle>
-                <div className="grid grid-cols-2 gap-3">
-                  <ContractCard label="Mulai Sewa" value={rental?.Tgl_Masuk ? format(parseISO(rental.Tgl_Masuk), 'd MMM yyyy', { locale: localeId }) : '—'} />
-                  <ContractCard label="Jatuh Tempo" value={rentalStatus ? format(rentalStatus.tglJatuhTempo, 'd MMM yyyy', { locale: localeId }) : '—'} dark />
-                  <ContractCard label="Periode" value={getPeriodeLabel(rental?.Periode_Sewa, rental?.Unit_Durasi)} />
-                  <ContractCard label="Tgl. Bayar DP" value={rental?.Tgl_DP ? format(parseISO(rental.Tgl_DP), 'd MMM yyyy', { locale: localeId }) : '—'} />
-                  <div className="col-span-2">
-                    <ContractCard label="Nominal Deposit" value={`Rp ${parseInt(rental?.Nominal_Deposit || '0').toLocaleString('id-ID')}`} />
-                  </div>
-                </div>
-              </section>
-
-              {/* WA Reminder button */}
-              {rentalStatus && (rentalStatus.isOverdue || rentalStatus.sisaHari <= 7) && waReminderUrl && (
-                <section>
-                  <a href={waReminderUrl} target="_blank" rel="noopener noreferrer">
-                    <Button
-                      id="btn-wa-remind"
-                      variant="outline"
-                      className="w-full h-12 rounded-2xl border-emerald-200 hover:border-emerald-400 hover:bg-emerald-50 text-emerald-700 font-bold flex items-center gap-2"
-                    >
-                      <MessageCircle className="w-4 h-4" />
-                      Ingatkan via WhatsApp
-                    </Button>
-                  </a>
-                </section>
-              )}
-            </>
-          )}
-
-          {/* VIEW MODE - Shared Upcoming Bookings Queue */}
-          {mode === 'view' && upcomingBookings.length > 0 && (
-            <section className="space-y-5">
-              <SectionTitle>Antrean Booking Berikutnya</SectionTitle>
-              <div className="relative border-l border-amber-200/80 ml-3 pl-6 space-y-6 py-2">
-                {upcomingBookings.map(({ rental: upRental, tenant: upTenant }, idx) => {
-                  const startStr = upRental?.Tgl_Masuk
-                    ? format(parseISO(upRental.Tgl_Masuk), 'd MMMM yyyy', { locale: localeId })
-                    : '—';
-                  const durasi = getPeriodeLabel(upRental?.Periode_Sewa, upRental?.Unit_Durasi);
-                  return (
-                    <div key={upRental.ID_Sewa} className="relative group">
-                      {/* Timeline dot */}
-                      <div className="absolute -left-[31px] top-1.5 w-3.5 h-3.5 rounded-full border-2 border-white bg-amber-500 shadow-sm transition-all duration-300 group-hover:scale-125" />
-                      
-                      <div className="bg-amber-50/40 border border-amber-200/40 rounded-2xl p-4 flex flex-col gap-2 hover:border-amber-300/60 hover:shadow-soft transition-all duration-300">
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <p className="text-[9px] font-black uppercase text-amber-700 tracking-wider">Antrean #{idx + 1}</p>
-                            <p className="text-xs font-bold text-foreground mt-0.5">{upTenant?.Nama || 'Penyewa'}</p>
-                          </div>
-                          <span className="text-[9px] font-black uppercase text-amber-800 bg-amber-100/60 px-2.5 py-0.5 rounded-full">
-                            {durasi}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-1.5 text-muted-foreground text-[10px] font-semibold mt-1">
-                          <CalendarClock className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                          <span>Masuk: {startStr}</span>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </section>
+          {/* VIEW MODE - Upcoming Bookings Queue */}
+          {mode === 'view' && (
+            <UpcomingBookingsTimeline
+              upcomingBookings={upcomingBookings}
+              getPeriodeLabel={getPeriodeLabel}
+            />
           )}
 
           {/* SEWA MODE */}
           {mode === 'sewa' && (
-            <>
-              <section className="space-y-5">
-                <SectionTitle>Penghuni</SectionTitle>
-                <div className="grid grid-cols-2 gap-3">
-                  <button
-                    onClick={() => setTenantInputMode('existing')}
-                    className={cn(
-                      'flex items-center gap-3 p-5 rounded-2xl border transition-all text-left',
-                      tenantInputMode === 'existing'
-                        ? 'bg-primary text-primary-foreground border-primary shadow-lg shadow-orange-500/10'
-                        : 'bg-white text-muted-foreground border-border hover:border-orange-200'
-                    )}
-                  >
-                    <Search className="w-5 h-5 shrink-0" />
-                    <div>
-                      <p className="text-[10px] font-bold uppercase tracking-widest">Penghuni Lama</p>
-                      <p className="text-[11px] opacity-70">Cari database</p>
-                    </div>
-                  </button>
-                  <button
-                    onClick={() => setTenantInputMode('new')}
-                    className={cn(
-                      'flex items-center gap-3 p-5 rounded-2xl border transition-all text-left',
-                      tenantInputMode === 'new'
-                        ? 'bg-primary text-primary-foreground border-primary shadow-lg shadow-orange-500/10'
-                        : 'bg-white text-muted-foreground border-border hover:border-orange-200'
-                    )}
-                  >
-                    <UserPlus className="w-5 h-5 shrink-0" />
-                    <div>
-                      <p className="text-[10px] font-bold uppercase tracking-widest">Penghuni Baru</p>
-                      <p className="text-[11px] opacity-70">Input data baru</p>
-                    </div>
-                  </button>
-                </div>
-
-                {tenantInputMode === 'existing' && (
-                  <div className="space-y-2">
-                    <Label className="text-muted-foreground text-xs ml-1">Pilih Penghuni</Label>
-                    <Select value={selectedExistingTenantId} onValueChange={setSelectedExistingTenantId}>
-                      <SelectTrigger className="h-12 rounded-xl"><SelectValue placeholder="Cari penghuni..." /></SelectTrigger>
-                      <SelectContent>
-                        {allTenants.map((t: any) => (
-                          <SelectItem key={t.ID_Penghuni} value={t.ID_Penghuni}>
-                            <div className="flex flex-col">
-                              <span className="font-bold">{t.Nama}</span>
-                              <span className="text-xs text-muted-foreground">{t.No_HP}</span>
-                            </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
-
-                {tenantInputMode === 'new' && (
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <Label className="text-muted-foreground text-xs ml-1">Nama Lengkap</Label>
-                      <Input value={sewaForm.Nama} onChange={e => setSewaForm({ ...sewaForm, Nama: e.target.value })} placeholder="Nama penghuni" className="h-12 rounded-xl" />
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label className="text-muted-foreground text-xs ml-1">WhatsApp</Label>
-                        <Input value={sewaForm.No_HP} onChange={e => setSewaForm({ ...sewaForm, No_HP: e.target.value })} placeholder="08xx / 62xx" className="h-12 rounded-xl" />
-                      </div>
-                      <div className="space-y-2">
-                        <Label className="text-muted-foreground text-xs ml-1">Kontak Darurat</Label>
-                        <Input value={sewaForm.Kontak_Darurat} onChange={e => setSewaForm({ ...sewaForm, Kontak_Darurat: e.target.value })} placeholder="Opsional" className="h-12 rounded-xl" />
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-muted-foreground text-xs ml-1">Bawa Kendaraan?</Label>
-                      <Select value={sewaForm.Bawa_Mobil} onValueChange={val => setSewaForm({ ...sewaForm, Bawa_Mobil: val })}>
-                        <SelectTrigger className="h-12 rounded-xl"><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Tidak">Tidak</SelectItem>
-                          <SelectItem value="Ya">Ya (Mobil)</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                )}
-              </section>
-
-              <section className="space-y-5">
-                <SectionTitle>Detail Kontrak</SectionTitle>
-                <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label className="text-muted-foreground text-xs ml-1">Mulai Sewa</Label>
-                      <Input type="date" value={sewaForm.Tgl_Masuk} onChange={e => setSewaForm({ ...sewaForm, Tgl_Masuk: e.target.value })} className="h-12 rounded-xl" />
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-muted-foreground text-xs ml-1">Tanggal DP</Label>
-                      <Input type="date" value={sewaForm.Tgl_DP} onChange={e => setSewaForm({ ...sewaForm, Tgl_DP: e.target.value })} className="h-12 rounded-xl" />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label className="text-muted-foreground text-xs ml-1">Durasi</Label>
-                      <div className="flex gap-2">
-                        <Input
-                          type="number"
-                          min="1"
-                          value={sewaForm.Periode_Sewa}
-                          onChange={e => setSewaForm({ ...sewaForm, Periode_Sewa: e.target.value })}
-                          className="h-12 rounded-xl w-20"
-                        />
-                        <Select value={sewaForm.Unit_Durasi} onValueChange={val => setSewaForm({ ...sewaForm, Unit_Durasi: val })}>
-                          <SelectTrigger className="h-12 rounded-xl flex-1"><SelectValue /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="Hari">Hari</SelectItem>
-                            <SelectItem value="Minggu">Minggu</SelectItem>
-                            <SelectItem value="Bulan">Bulan</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-muted-foreground text-xs ml-1">Deposit (Rp)</Label>
-                      <Input type="number" value={sewaForm.Nominal_Deposit} onChange={e => setSewaForm({ ...sewaForm, Nominal_Deposit: e.target.value })} placeholder="0" className="h-12 rounded-xl" />
-                    </div>
-                  </div>
-                </div>
-              </section>
-            </>
+            <TenantSewaMode
+              sewaForm={sewaForm}
+              setSewaForm={setSewaForm}
+              tenantInputMode={tenantInputMode}
+              setTenantInputMode={setTenantInputMode}
+              selectedExistingTenantId={selectedExistingTenantId}
+              setSelectedExistingTenantId={setSelectedExistingTenantId}
+              allTenants={allTenants}
+            />
           )}
 
           {/* RENEW MODE */}
           {mode === 'renew' && (
-            <section className="space-y-8">
-              <div className="p-6 bg-muted/30 rounded-[1.5rem] border border-border space-y-4">
-                <SectionTitle>Kontrak Saat Ini</SectionTitle>
-                <div className="grid grid-cols-2 gap-4">
-                  <ContractCard label="Mulai Sewa" value={rental?.Tgl_Masuk ? format(parseISO(rental.Tgl_Masuk), 'd MMM yyyy', { locale: localeId }) : '—'} />
-                  <ContractCard label="Jatuh Tempo" value={rentalStatus ? format(rentalStatus.tglJatuhTempo, 'd MMM yyyy', { locale: localeId }) : '—'} dark />
-                </div>
-              </div>
-
-              <div className="space-y-5">
-                <SectionTitle>Perpanjang Masa Sewa</SectionTitle>
-                <div className="space-y-2">
-                  <Label className="text-muted-foreground text-xs ml-1">Tambah berapa {rental?.Unit_Durasi || 'Bulan'}?</Label>
-                  <Select value={renewMonths} onValueChange={setRenewMonths}>
-                    <SelectTrigger className="h-12 rounded-xl"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {[1, 2, 3, 6, 12].map(n => (
-                        <SelectItem key={n} value={String(n)}>+ {n} {rental?.Unit_Durasi || 'Bulan'}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {rentalStatus && (
-                  <div className="flex items-center gap-4 p-5 bg-emerald-50 border border-emerald-100 rounded-2xl shadow-sm">
-                    <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center">
-                      <CheckCircle className="w-6 h-6 text-emerald-600 shrink-0" />
-                    </div>
-                    <div>
-                      <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest">Estimasi Jatuh Tempo Baru</p>
-                      <p className="text-base font-bold text-foreground">
-                        {format(
-                          calculateDueDate(
-                            rentalStatus.tglJatuhTempo,
-                            parseInt(renewMonths),
-                            parseDurasiUnit(rental?.Unit_Durasi)
-                          ),
-                          'd MMMM yyyy',
-                          { locale: localeId }
-                        )}
-                      </p>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </section>
+            <TenantRenewMode
+              rental={rental}
+              rentalStatus={rentalStatus}
+              renewMonths={renewMonths}
+              setRenewMonths={setRenewMonths}
+            />
           )}
         </div>
 
-        {/* ── Footer / Actions ── */}
-        <div className="p-8 bg-white border-t border-border">
-          <SheetFooter>
-            {/* SEWA MODE: 2 buttons — Booking + Konfirmasi Aktif */}
-            {mode === 'sewa' && (
-              <div className="flex gap-3 w-full">
-                <Button
-                  id="btn-booking-kamar"
-                  onClick={handleBooking}
-                  disabled={loading}
-                  variant="outline"
-                  className="flex-1 h-14 font-bold rounded-2xl border-amber-300 text-amber-700 hover:bg-amber-50"
-                >
-                  {loading ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : <CalendarClock className="w-4 h-4 mr-2" />}
-                  Booking (DP)
-                </Button>
-                <Button
-                  id="btn-sewa-kamar"
-                  onClick={handleSewa}
-                  disabled={loading}
-                  className="flex-1 h-14 font-bold rounded-2xl shadow-xl shadow-orange-500/10"
-                >
-                  {loading ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : null}
-                  Sewa Aktif
-                </Button>
-              </div>
-            )}
-
-            {/* VIEW MODE — BOOKING: activate or cancel */}
-            {mode === 'view' && isBooked && (
-              <div className="flex gap-3 w-full">
-                <Button
-                  id="btn-checkout-booking"
-                  onClick={() => setShowCheckoutConfirm(true)}
-                  disabled={loading}
-                  variant="outline"
-                  className="flex-1 h-14 font-bold rounded-2xl text-muted-foreground"
-                >
-                  Batalkan Booking
-                </Button>
-                <Button
-                  id="btn-activate-booking"
-                  onClick={handleActivateBooking}
-                  disabled={loading}
-                  className="flex-1 h-14 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-2xl shadow-xl shadow-blue-500/10"
-                >
-                  {loading ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : <CheckCircle className="w-4 h-4 mr-2" />}
-                  Aktifkan (Check-in)
-                </Button>
-              </div>
-            )}
-
-            {/* VIEW MODE — AKTIF */}
-            {mode === 'view' && !isBooked && tenant && (
-              <div className="flex gap-3 w-full">
-                <Button
-                  id="btn-perpanjang-sewa"
-                  onClick={() => setMode('renew')}
-                  variant="outline"
-                  className="flex-1 h-14 font-bold rounded-2xl flex items-center gap-2"
-                >
-                  <RotateCcw className="w-4 h-4" /> Perpanjang
-                </Button>
-                <Button
-                  id="btn-selesai-sewa"
-                  onClick={() => setShowCheckoutConfirm(true)}
-                  disabled={loading}
-                  variant="destructive"
-                  className="flex-1 h-14 font-bold rounded-2xl shadow-xl shadow-destructive/10"
-                >
-                  {loading ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : null}
-                  {loading ? 'Memproses...' : 'Selesaikan Sewa'}
-                </Button>
-              </div>
-            )}
-
-            {/* RENEW MODE */}
-            {mode === 'renew' && (
-              <div className="flex gap-3 w-full">
-                <Button variant="ghost" onClick={() => setMode('view')} className="flex-1 h-14 font-bold rounded-2xl text-muted-foreground">
-                  Batal
-                </Button>
-                <Button
-                  id="btn-konfirmasi-perpanjang"
-                  onClick={handleRenew}
-                  disabled={loading}
-                  className="flex-1 h-14 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-2xl shadow-xl shadow-emerald-500/10"
-                >
-                  {loading ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : <CheckCircle className="w-5 h-5 mr-2" />}
-                  {loading ? 'Menyimpan...' : 'Konfirmasi'}
-                </Button>
-              </div>
-            )}
-          </SheetFooter>
+        {/* ── Footer ── */}
+        <div className="p-8 bg-white border-t border-border font-sans">
+          <TenantSheetFooter
+            mode={mode}
+            setMode={setMode}
+            isBooked={isBooked}
+            tenantExists={!!tenant}
+            loading={loading}
+            handleBooking={handleBooking}
+            handleSewa={handleSewa}
+            handleActivateBooking={handleActivateBooking}
+            handleRenew={handleRenew}
+            setShowCheckoutConfirm={setShowCheckoutConfirm}
+          />
         </div>
 
       </SheetContent>

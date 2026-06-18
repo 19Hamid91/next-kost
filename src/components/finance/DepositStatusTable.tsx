@@ -210,7 +210,7 @@ export default function DepositStatusTable({
                         {endDateStr}
                       </TableCell>
                       <TableCell className="font-semibold text-foreground text-right">
-                        {formatRupiah(rental.Nominal_Deposit)}
+                        {formatRupiah(rental.Nominal_Deposit ?? 0)}
                       </TableCell>
                       <TableCell>
                         {isRefunded ? (
