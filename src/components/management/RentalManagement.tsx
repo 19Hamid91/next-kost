@@ -79,6 +79,20 @@ export default function RentalManagement({
 }: RentalManagementProps) {
   const set = (field: string) => (val: string) => setEditFormData({ ...editFormData, [field]: val });
 
+  // Strip leading zeros while preserving valid input for numeric currency fields
+  const handleNumericChange = (field: string) => (e: React.ChangeEvent<HTMLInputElement>) => {
+    const raw = e.target.value.replace(/^0+(?=\d)/, '');
+    set(field)(raw === '' ? '0' : raw);
+  };
+
+  const handleNumericFocus = (field: string) => (e: React.FocusEvent<HTMLInputElement>) => {
+    if (e.target.value === '0') set(field)('');
+  };
+
+  const handleNumericBlur = (field: string) => (e: React.FocusEvent<HTMLInputElement>) => {
+    if (e.target.value === '') set(field)('0');
+  };
+
   const allSelected = rentals.length > 0 && rentals.every(r => selectedIds.includes(r.ID_Sewa));
   const toggleAll = () => {
     if (allSelected) {
@@ -158,7 +172,7 @@ export default function RentalManagement({
                   </TableCell>
                   <TableCell><Input type="date" value={editFormData.Tgl_Masuk || ''} onChange={e => set('Tgl_Masuk')(e.target.value)} className="h-10 rounded-xl" /></TableCell>
                   <TableCell><Input type="date" value={editFormData.Tgl_DP || ''} onChange={e => set('Tgl_DP')(e.target.value)} className="h-10 rounded-xl" /></TableCell>
-                  <TableCell><Input type="number" value={editFormData.Nominal_Deposit || '0'} onChange={e => set('Nominal_Deposit')(e.target.value)} className="h-10 rounded-xl w-32" /></TableCell>
+                  <TableCell><Input type="number" value={editFormData.Nominal_Deposit || '0'} onChange={handleNumericChange('Nominal_Deposit')} onFocus={handleNumericFocus('Nominal_Deposit')} onBlur={handleNumericBlur('Nominal_Deposit')} className="h-10 rounded-xl w-32" /></TableCell>
                   <TableCell><Input type="number" value={editFormData.Periode_Sewa || '1'} onChange={e => set('Periode_Sewa')(e.target.value)} className="h-10 rounded-xl w-16" /></TableCell>
                   <TableCell><InlineSelect value={editFormData.Unit_Durasi || 'Bulan'} onChange={set('Unit_Durasi')} options={DURASI_OPTIONS} className="p-2 rounded-xl h-10 w-24" /></TableCell>
                   <TableCell><InlineSelect value={editFormData.Status_Sewa || 'AKTIF'} onChange={set('Status_Sewa')} options={STATUS_OPTIONS} className="p-2 rounded-xl h-10 w-full" /></TableCell>
@@ -221,7 +235,7 @@ export default function RentalManagement({
                     </TableCell>
                     <TableCell className="font-medium text-muted-foreground">
                       {isEditing
-                        ? <Input type="number" value={editFormData.Nominal_Deposit || '0'} onChange={e => set('Nominal_Deposit')(e.target.value)} className="h-9 p-1 w-28 rounded-lg" />
+                        ? <Input type="number" value={editFormData.Nominal_Deposit || '0'} onChange={handleNumericChange('Nominal_Deposit')} onFocus={handleNumericFocus('Nominal_Deposit')} onBlur={handleNumericBlur('Nominal_Deposit')} className="h-9 p-1 w-28 rounded-lg" />
                         : `Rp ${parseInt(rental.Nominal_Deposit || '0').toLocaleString('id-ID')}`}
                     </TableCell>
                     <TableCell className="font-medium text-muted-foreground">
