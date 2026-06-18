@@ -41,7 +41,10 @@ export async function GET(req: NextRequest) {
     // Filter rentals belonging to this kost
     const filteredRentals = rentals.filter((rental) => kostRoomIds.includes(rental.ID_Kamar));
 
-    // Total rent income: AKTIF rentals whose period overlaps this month
+    // Total rent income: AKTIF/SELESAI rentals overlapping this month.
+    // DP is tracked separately when paid (Tgl_DP), so subtract it here to avoid double-counting.
+    // Formula: rent income this period = Monthly_Rent - DP_Amount (if DP already paid)
+    // Net across all periods: DP_received + (Rent - DP) = full rent price ✅
     let totalRentIncome = 0;
     for (const rental of filteredRentals) {
       const status = rental.Status_Sewa;
@@ -59,29 +62,41 @@ export async function GET(req: NextRequest) {
 
       const room = filteredRooms.find((r) => r.ID_Kamar === rental.ID_Kamar);
       const monthlyRent = parseInt(rental.Monthly_Rent || room?.Harga_Sewa || '0');
-      totalRentIncome += monthlyRent;
+      // Subtract DP that was already counted as income when paid
+      const paidDp = rental.DP_Status === 'paid' ? parseInt(rental.DP_Amount || '0') : 0;
+      totalRentIncome += Math.max(0, monthlyRent - paidDp);
     }
 
-    // DP received: DP_Status = 'paid', Tgl_Masuk (booking date) in period
+    // DP received: counted when paid (Tgl_DP in period), any status.
+    // This is the advance payment — the remaining rent is counted separately above.
     let totalDpReceived = 0;
     for (const rental of filteredRentals) {
-      if (rental.DP_Status === 'paid' && isInPeriod(rental.Tgl_Masuk)) {
+      if (rental.DP_Status === 'paid' && isInPeriod(rental.Tgl_DP || '')) {
         totalDpReceived += parseInt(rental.DP_Amount || '0');
       }
     }
 
-    // DP forfeited: DP_Status = 'forfeited', updated in period
+    // DP forfeited: DP_Status = 'forfeited', Tgl_DP (payment date) in period
     let totalDpForfeited = 0;
     for (const rental of filteredRentals) {
-      if (rental.DP_Status === 'forfeited' && isInPeriod(rental.Tgl_Masuk)) {
+      if (rental.DP_Status === 'forfeited' && isInPeriod(rental.Tgl_DP || '')) {
         totalDpForfeited += parseInt(rental.DP_Amount || '0');
       }
     }
 
-    // Expenses in period (expenses are global since they don't have ID_Kost)
+    // Deposit received (inflow): collected when tenant pays deposit (Tgl_Deposit)
+    let totalDepositReceived = 0;
+    for (const rental of filteredRentals) {
+      const depositAmount = parseInt(rental.Nominal_Deposit || '0');
+      if (depositAmount > 0 && isInPeriod(rental.Tgl_Deposit || '')) {
+        totalDepositReceived += depositAmount;
+      }
+    }
+
+    // Expenses in period — filtered by ID_Kost (empty ID_Kost expenses are skipped)
     let totalExpenses = 0;
     for (const expense of expenses) {
-      if (isInPeriod(expense.Date)) {
+      if (expense.ID_Kost === kostId && isInPeriod(expense.Date)) {
         totalExpenses += parseInt(expense.Amount || '0');
       }
     }
@@ -94,12 +109,19 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    const netCashflow = totalRentIncome + totalDpReceived + totalDpForfeited - totalExpenses - totalDepositRefunded;
+    const netCashflow =
+      totalRentIncome +
+      totalDpReceived +
+      totalDpForfeited +
+      totalDepositReceived -
+      totalExpenses -
+      totalDepositRefunded;
 
     const summaryData = {
       totalRentIncome,
       totalDpReceived,
       totalDpForfeited,
+      totalDepositReceived,
       totalExpenses,
       totalDepositRefunded,
       netCashflow,
