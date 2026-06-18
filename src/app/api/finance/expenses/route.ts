@@ -16,6 +16,7 @@ export async function GET(req: NextRequest) {
     const targetYear = parseInt(searchParams.get('year') ?? String(now.getFullYear()));
     const page = parseInt(searchParams.get('page') ?? '1');
     const limit = parseInt(searchParams.get('limit') ?? '50');
+    const kostId = searchParams.get('kostId');
 
     const periodStart = new Date(targetYear, targetMonth - 1, 1);
     const periodEnd = new Date(targetYear, targetMonth, 0, 23, 59, 59);
@@ -25,7 +26,10 @@ export async function GET(req: NextRequest) {
     const filtered = allExpenses.filter((expense) => {
       if (!expense.Date) return false;
       const date = new Date(expense.Date);
-      return date >= periodStart && date <= periodEnd;
+      const inPeriod = date >= periodStart && date <= periodEnd;
+      // If kostId provided, filter by it; allow records with empty ID_Kost only if no kostId filter applied
+      const inKost = kostId ? expense.ID_Kost === kostId : true;
+      return inPeriod && inKost;
     });
 
     filtered.sort((expenseA, expenseB) =>
@@ -35,8 +39,6 @@ export async function GET(req: NextRequest) {
     const totalCount = filtered.length;
     const paginated = filtered.slice((page - 1) * limit, page * limit);
 
-    // Standard response standard from User Rule 5 requires: success, message, data, RecordCount
-    // SuccessResponse helper provides exactly this
     return successResponse(paginated, totalCount);
   } catch (error: any) {
     logError('api.finance.expenses', 'GET', error);
@@ -50,7 +52,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json();
-    const { date, category, amount, notes } = body;
+    const { date, category, amount, notes, kostId } = body;
 
     if (!date || isNaN(new Date(date).getTime())) {
       return errorResponse('Invalid date', 400);
@@ -61,9 +63,13 @@ export async function POST(req: NextRequest) {
     if (!amount || !Number.isInteger(Number(amount)) || Number(amount) <= 0) {
       return errorResponse('Amount must be a positive integer', 400);
     }
+    if (!kostId) {
+      return errorResponse('Missing kostId', 400);
+    }
 
     const newExpense: Expense = {
       ID_Expense: `EXP-${Date.now()}`,
+      ID_Kost: kostId,
       Date: date,
       Category: category,
       Amount: String(amount),

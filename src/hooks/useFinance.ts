@@ -17,7 +17,7 @@ export function useFinance(kostId: string) {
   const [dismissedReminder, setDismissedReminder] = useState(false);
 
   const summaryKey = `/api/finance/summary?month=${selectedMonth}&year=${selectedYear}&kostId=${kostId}`;
-  const expensesKey = `/api/finance/expenses?month=${selectedMonth}&year=${selectedYear}&limit=100`;
+  const expensesKey = `/api/finance/expenses?month=${selectedMonth}&year=${selectedYear}&limit=100&kostId=${kostId}`;
   const remindersKey = `/api/finance/deposit/reminders`;
   const rentalsKey = `/api/data/Transaksi_Sewa`;
   const roomsKey = `/api/data/Master_Kamar`;
@@ -68,7 +68,7 @@ export function useFinance(kostId: string) {
       const res = await fetch('/api/finance/expenses', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({ ...payload, kostId }),
       });
       const result = await res.json();
       if (result.success) {
