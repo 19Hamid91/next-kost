@@ -49,7 +49,7 @@ export default function Home() {
                 </div>
 
                 {/* Grid Section */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                     {editingId === "new" && (
                         <KostForm
                             formData={editFormData}
@@ -83,10 +83,7 @@ export default function Home() {
                 </div>
             </main>
 
-            {/* Footer Branding */}
-            <footer className="p-10 text-center opacity-40 select-none">
-                <p className="text-[11px] font-medium uppercase tracking-[0.4em] text-muted-foreground">NextKost Management System</p>
-            </footer>
+
 
             <ConfirmModal
                 isOpen={!!confirmDeleteId}

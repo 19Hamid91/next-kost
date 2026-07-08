@@ -142,29 +142,31 @@ export default function RoomGrid({ roomsWithOccupancy, onRoomClick }: RoomGridPr
             className="w-full space-y-8"
         >
             {/* Floor tabs + legend */}
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-                <div className="overflow-x-auto pb-1">
-                    <TabsList className="bg-muted/50 border border-border p-1 rounded-2xl h-auto">
+            <div className="flex flex-col gap-4 w-full min-w-0">
+                <div className="overflow-x-auto w-full min-w-0 pb-1 scrollbar-none">
+                    <TabsList className="bg-muted/50 border border-border p-1 rounded-2xl h-auto flex flex-row flex-nowrap justify-start w-fit">
                         <TabsTrigger
                             value="ALL"
-                            className="data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm px-8 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest transition-all"
+                            className="data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm px-4 sm:px-8 py-2 sm:py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest transition-all shrink-0"
                         >
-                            Semua Lantai
+                            <span className="hidden sm:inline">Semua Lantai</span>
+                            <span className="sm:hidden">Semua</span>
                         </TabsTrigger>
                         {floors.map((floor) => (
                             <TabsTrigger
                                 key={floor}
                                 value={floor}
-                                className="data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm px-8 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest transition-all"
+                                className="data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm px-4 sm:px-8 py-2 sm:py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest transition-all shrink-0"
                             >
-                                Lantai {floor}
+                                <span className="hidden sm:inline">Lantai {floor}</span>
+                                <span className="sm:hidden">{floor}</span>
                             </TabsTrigger>
                         ))}
                     </TabsList>
                 </div>
 
                 {/* Legend */}
-                <div className="flex flex-wrap items-center gap-4 px-5 py-3 bg-white border border-border rounded-2xl shadow-soft text-[10px] font-bold uppercase tracking-widest">
+                <div className="flex flex-wrap items-center gap-4 px-5 py-3 bg-white border border-border rounded-2xl shadow-soft text-[10px] font-bold uppercase tracking-widest w-fit">
                     {[
                         { color: "bg-emerald-500", label: "Aktif" },
                         { color: "bg-amber-500", label: "Booking" },

@@ -37,8 +37,6 @@ export default function DashboardPage() {
                         <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-foreground">Denah Kamar</h1>
                         <p className="text-muted-foreground text-sm font-medium flex items-center gap-2.5">
                             <span className="w-2 h-2 rounded-full bg-primary animate-pulse shadow-[0_0_8px_rgba(249,115,22,0.4)]" />
-                            {currentKost?.Nama_Kost || "Kost"}
-                            <span className="text-border mx-1">•</span>
                             Klik unit untuk detail penyewa
                         </p>
                     </div>
@@ -110,9 +108,6 @@ export default function DashboardPage() {
                 onClose={closeSheet}
             />
 
-            <footer className="p-12 text-center opacity-40 select-none">
-                <p className="text-[11px] font-medium uppercase tracking-[0.4em] text-muted-foreground">NextKost Dashboard Core</p>
-            </footer>
         </div>
     );
 }

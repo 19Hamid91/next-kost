@@ -41,7 +41,7 @@ export default function RoomManagement({ rooms, editingId, editFormData, isAddin
 
     return (
         <Card className="bg-white/70 backdrop-blur-xl border-white/20 shadow-soft rounded-[2rem] overflow-hidden">
-            <CardHeader className="flex flex-row items-center justify-between border-b border-border p-6 gap-4">
+            <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-border p-5 sm:p-6 gap-4">
                 <div className="space-y-1">
                     <CardTitle className="text-xl font-bold text-foreground">Master Kamar</CardTitle>
                     <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em]">Manajemen unit kost aktif</p>
@@ -60,7 +60,7 @@ export default function RoomManagement({ rooms, editingId, editFormData, isAddin
                         onClick={onStartAdding}
                         className="rounded-xl shadow-lg shadow-orange-500/10"
                     >
-                        <Plus className="w-4 h-4 mr-2" /> Tambah Unit
+                        <Plus className="w-4 h-4 mr-2" /> Tambah
                     </Button>
                 </div>
             </CardHeader>
@@ -78,10 +78,10 @@ export default function RoomManagement({ rooms, editingId, editFormData, isAddin
                                         className="w-4 h-4 rounded accent-primary cursor-pointer"
                                     />
                                 </TableHead>
-                                {["No. Kamar", "Lantai", "Harga Sewa", "Aksi"].map((head, idx) => (
+                                {["No.", "No. Kamar", "Lantai", "Harga Sewa", "Aksi"].map((head, idx) => (
                                     <TableHead
                                         key={head}
-                                        className={cn("text-[10px] font-bold uppercase tracking-widest text-muted-foreground py-4", idx === 3 ? "text-right pr-8" : "")}
+                                        className={cn("text-[10px] font-bold uppercase tracking-widest text-muted-foreground py-4 whitespace-nowrap", idx === 4 ? "text-right pr-8" : "")}
                                     >
                                         {head}
                                     </TableHead>
@@ -93,6 +93,7 @@ export default function RoomManagement({ rooms, editingId, editFormData, isAddin
                             {isAdding && editingId === "new" && (
                                 <TableRow className="border-border bg-orange-50/30">
                                     <TableCell className="pl-6" />
+                                    <TableCell className="text-xs font-semibold text-muted-foreground">—</TableCell>
                                     <TableCell>
                                         <Input
                                             value={editFormData.No_Kamar || ""}
@@ -142,7 +143,7 @@ export default function RoomManagement({ rooms, editingId, editFormData, isAddin
                                 </TableRow>
                             )}
 
-                            {rooms.map((room: any) => {
+                            {rooms.map((room: any, index: number) => {
                                 const isEditing = editingId === room.ID_Kamar;
                                 const isSelected = selectedIds.includes(room.ID_Kamar);
                                 return (
@@ -157,6 +158,9 @@ export default function RoomManagement({ rooms, editingId, editFormData, isAddin
                                                 onChange={() => onToggleSelect(room.ID_Kamar)}
                                                 className="w-4 h-4 rounded accent-primary cursor-pointer"
                                             />
+                                        </TableCell>
+                                        <TableCell className="text-xs font-bold text-muted-foreground/75 tabular-nums">
+                                            {index + 1}
                                         </TableCell>
                                         <TableCell className="font-bold text-foreground">
                                             {isEditing ? (

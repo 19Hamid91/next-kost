@@ -168,18 +168,10 @@ export default function BulkAddModal({ isOpen, onClose, entityType, kostId }: Bu
         >
             <DialogContent className="max-w-4xl w-full bg-white rounded-[2rem] p-0 overflow-hidden shadow-2xl border-0 gap-0">
                 {/* Header */}
-                <DialogHeader className="p-6 pb-4 border-b border-border bg-muted/30">
-                    <div className="flex items-start justify-between">
-                        <div className="space-y-1">
-                            <DialogTitle className="text-xl font-bold text-foreground">{title}</DialogTitle>
-                            <DialogDescription className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">Input baris sekaligus, simpan dalam satu klik</DialogDescription>
-                        </div>
-                        <Badge
-                            variant="outline"
-                            className="bg-primary/10 text-primary border-0 font-bold rounded-xl px-3 py-1"
-                        >
-                            {rows.length} Baris
-                        </Badge>
+                <DialogHeader className="p-5 sm:p-6 pr-14 border-b border-border bg-muted/30">
+                    <div className="space-y-1">
+                        <DialogTitle className="text-xl font-bold text-foreground">{title}</DialogTitle>
+                        <DialogDescription className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">Input baris sekaligus, simpan dalam satu klik</DialogDescription>
                     </div>
                 </DialogHeader>
 

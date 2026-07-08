@@ -42,7 +42,7 @@ export default function TenantManagement({ tenants, editingId, editFormData, isA
 
     return (
         <Card className="bg-white/70 backdrop-blur-xl border-white/20 shadow-soft rounded-[2rem] overflow-hidden">
-            <CardHeader className="flex flex-row items-center justify-between border-b border-border p-6 gap-4">
+            <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-border p-5 sm:p-6 gap-4">
                 <div className="space-y-1">
                     <CardTitle className="text-xl font-bold text-foreground">Master Penghuni</CardTitle>
                     <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em]">Manajemen database penyewa</p>
@@ -61,7 +61,7 @@ export default function TenantManagement({ tenants, editingId, editFormData, isA
                         onClick={onStartAdding}
                         className="rounded-xl shadow-lg shadow-orange-500/10"
                     >
-                        <Plus className="w-4 h-4 mr-2" /> Tambah Penghuni
+                        <Plus className="w-4 h-4 mr-2" /> Tambah
                     </Button>
                 </div>
             </CardHeader>
@@ -79,10 +79,10 @@ export default function TenantManagement({ tenants, editingId, editFormData, isA
                                         className="w-4 h-4 rounded accent-primary cursor-pointer"
                                     />
                                 </TableHead>
-                                {["Nama", "No. HP", "Bawa Mobil", "Kontak Darurat", "Aksi"].map((head, idx) => (
+                                {["No.", "Nama", "No. HP", "Bawa Mobil", "Kontak Darurat", "Aksi"].map((head, idx) => (
                                     <TableHead
                                         key={head}
-                                        className={cn("text-[10px] font-bold uppercase tracking-widest text-muted-foreground py-4", idx === 4 ? "text-right pr-8" : "")}
+                                        className={cn("text-[10px] font-bold uppercase tracking-widest text-muted-foreground py-4 whitespace-nowrap", idx === 5 ? "text-right pr-8" : "")}
                                     >
                                         {head}
                                     </TableHead>
@@ -93,6 +93,7 @@ export default function TenantManagement({ tenants, editingId, editFormData, isA
                             {isAdding && editingId === "new" && (
                                 <TableRow className="border-border bg-orange-50/30">
                                     <TableCell className="pl-6" />
+                                    <TableCell className="text-xs font-semibold text-muted-foreground">—</TableCell>
                                     <TableCell>
                                         <Input
                                             value={editFormData.Nama || ""}
@@ -151,7 +152,7 @@ export default function TenantManagement({ tenants, editingId, editFormData, isA
                                 </TableRow>
                             )}
 
-                            {tenants.map((tenant: any) => {
+                            {tenants.map((tenant: any, index: number) => {
                                 const isEditing = editingId === tenant.ID_Penghuni;
                                 const isSelected = selectedIds.includes(tenant.ID_Penghuni);
                                 return (
@@ -166,6 +167,9 @@ export default function TenantManagement({ tenants, editingId, editFormData, isA
                                                 onChange={() => onToggleSelect(tenant.ID_Penghuni)}
                                                 className="w-4 h-4 rounded accent-primary cursor-pointer"
                                             />
+                                        </TableCell>
+                                        <TableCell className="text-xs font-bold text-muted-foreground/75 tabular-nums">
+                                            {index + 1}
                                         </TableCell>
                                         <TableCell className="font-bold text-foreground">
                                             {isEditing ? (

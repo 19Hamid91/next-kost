@@ -30,32 +30,32 @@ export default function Header() {
     ];
 
     return (
-        <header className="h-20 border-b border-border bg-white/70 backdrop-blur-xl flex items-center justify-between px-6 sm:px-10 sticky top-0 z-50">
+        <header className="h-16 border-b border-border bg-white/70 backdrop-blur-xl flex items-center justify-between px-4 sm:px-10 sticky top-0 z-50">
             {/* Left: Back + Kost Name */}
-            <div className="flex items-center gap-6">
-                <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => router.push("/")}
-                    className="text-muted-foreground hover:text-primary transition-all"
-                >
-                    <ChevronLeft className="w-5 h-5" />
-                    <span className="hidden sm:inline font-semibold text-xs uppercase tracking-widest ml-1">Kosts</span>
-                </Button>
-
+            <div className="flex items-center gap-2 sm:gap-4 min-w-0">
                 {kostId && (
-                    <div className="flex items-center gap-4">
-                        <div className="h-6 w-px bg-border" />
-                        <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center">
-                                <Building2 className="w-5 h-5 text-primary" />
+                    <>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => router.push("/")}
+                            className="text-muted-foreground hover:text-primary transition-all h-9 w-9 rounded-xl shrink-0"
+                        >
+                            <ChevronLeft className="w-5 h-5" />
+                        </Button>
+
+                        <div className="flex items-center gap-2.5 min-w-0">
+                            <div className="w-8 h-8 sm:w-9 sm:h-9 bg-primary/10 rounded-lg sm:rounded-xl flex items-center justify-center shrink-0">
+                                <Building2 className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
                             </div>
-                            <div className="flex flex-col">
-                                <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider leading-tight">Project</span>
-                                <span className="font-bold text-foreground tracking-tight text-sm">{currentKost ? currentKost.Nama_Kost : <div className="h-4 w-24 bg-muted animate-pulse rounded" />}</span>
+                            <div className="flex flex-col min-w-0">
+                                <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest leading-none mb-0.5">Project</span>
+                                <span className="font-extrabold text-foreground tracking-tight text-xs sm:text-sm truncate">
+                                    {currentKost ? currentKost.Nama_Kost : <span className="inline-block h-3 w-16 bg-muted animate-pulse rounded" />}
+                                </span>
                             </div>
                         </div>
-                    </div>
+                    </>
                 )}
             </div>
 
@@ -83,16 +83,15 @@ export default function Header() {
                 </nav>
             )}
 
-            {/* Right: Profile Dropdown */}
-            <div className="flex items-center gap-4 relative">
+            <div className="flex items-center gap-2 sm:gap-4 relative shrink-0">
                 <button
                     onClick={() => setProfileMenuOpen(!profileMenuOpen)}
-                    className="flex items-center gap-3 p-1 pr-4 bg-muted/50 hover:bg-muted transition-all rounded-2xl border border-border group focus:outline-none"
+                    className="flex items-center gap-0 sm:gap-3 p-1 sm:pr-4 bg-muted/50 hover:bg-muted transition-all rounded-xl sm:rounded-2xl border border-border group focus:outline-none"
                 >
-                    <div className="w-8 h-8 rounded-xl bg-primary flex items-center justify-center text-xs font-bold text-primary-foreground transition-transform group-hover:scale-105">
+                    <div className="w-8 h-8 rounded-lg sm:rounded-xl bg-primary flex items-center justify-center text-xs font-bold text-primary-foreground transition-transform group-hover:scale-105 shrink-0">
                         {session?.user?.name?.charAt(0)?.toUpperCase() || "A"}
                     </div>
-                    <div className="flex flex-col items-start text-left hidden sm:flex">
+                    <div className="flex flex-col items-start text-left hidden sm:flex shrink-0">
                         <span className="text-[9px] font-medium text-muted-foreground uppercase tracking-widest leading-none mb-0.5">Admin</span>
                         <span className="text-xs font-bold text-foreground truncate max-w-[100px]">{session?.user?.name || session?.user?.email}</span>
                     </div>

@@ -87,74 +87,73 @@ export default function TenantSheet({ room, tenant, rental, upcomingBookings = [
         >
             <SheetContent className="bg-white/80 backdrop-blur-[32px] border-l border-white/20 text-foreground w-full sm:w-[540px] p-0 flex flex-col h-full shadow-2xl">
                 {/* ── Header ── */}
-                <div className="p-10 bg-muted/30 border-b border-border relative overflow-hidden text-left font-sans">
+                <div className="p-5 sm:p-6 bg-muted/30 border-b border-border relative overflow-hidden text-left font-sans">
                     <div className="absolute -top-24 -right-24 w-64 h-64 bg-orange-500/5 rounded-full blur-3xl" />
 
                     <SheetHeader className="relative z-10 text-left">
-                        <div className="flex items-center gap-5">
-                            <div className={cn("w-16 h-16 rounded-[1.5rem] shadow-xl flex items-center justify-center", isBooked ? "bg-amber-500 shadow-amber-500/10" : "bg-primary shadow-orange-500/10")}>
-                                {isBooked ? <CalendarClock className="w-8 h-8 text-white" /> : <DoorOpen className="w-8 h-8 text-primary-foreground" />}
+                        <div className="flex items-center gap-3.5">
+                            <div className={cn("w-12 h-12 sm:w-14 sm:h-14 rounded-xl sm:rounded-[1.25rem] shadow-lg flex items-center justify-center shrink-0", isBooked ? "bg-amber-500 shadow-amber-500/10" : "bg-primary shadow-orange-500/10")}>
+                                {isBooked ? <CalendarClock className="w-6 h-6 sm:w-7 sm:h-7 text-white" /> : <DoorOpen className="w-6 h-6 sm:w-7 sm:h-7 text-primary-foreground" />}
                             </div>
                             <div>
-                                <SheetTitle className="text-foreground text-3xl font-bold tracking-tight">Unit {room?.No_Kamar}</SheetTitle>
-                                <SheetDescription className="text-muted-foreground text-xs font-semibold uppercase tracking-widest mt-1.5 flex items-center gap-2">
+                                <SheetTitle className="text-foreground text-xl sm:text-2xl font-bold tracking-tight">Unit {room?.No_Kamar}</SheetTitle>
+                                <SheetDescription className="text-muted-foreground text-[10px] sm:text-xs font-semibold uppercase tracking-widest mt-1 flex items-center gap-2">
                                     <span className={cn("w-2 h-2 rounded-full", isBooked ? "bg-amber-500" : tenant ? "bg-blue-500" : "bg-emerald-500")} />
                                     {mode === "renew" ? "Perpanjang Kontrak" : isBooked ? "Kamar Ter-Booking" : tenant ? "Penghuni Aktif" : "Kamar Kosong"}
                                 </SheetDescription>
                             </div>
                         </div>
-
-                        {/* BOOKING status banner */}
-                        {isBooked && mode === "view" && (
-                            <div className="mt-8 p-5 rounded-2xl bg-amber-50 border border-amber-200 flex items-center justify-between">
-                                <div className="flex items-center gap-4">
-                                    <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center">
-                                        <CalendarClock className="w-5 h-5 text-amber-600" />
-                                    </div>
-                                    <div className="flex flex-col gap-0.5">
-                                        <p className="text-[9px] font-bold uppercase tracking-widest text-amber-600 mb-0 leading-tight">Status Booking</p>
-                                        <p className="text-sm font-bold text-foreground mb-0 leading-tight">DP Dibayar — Belum Masuk</p>
-                                    </div>
-                                </div>
-                                {rental?.Tgl_Masuk && (
-                                    <div className="text-right flex flex-col gap-0.5">
-                                        <p className="text-[9px] font-bold uppercase tracking-widest text-amber-600 mb-0 leading-tight">Check-in</p>
-                                        <p className="text-sm font-bold text-foreground mb-0 leading-tight">{format(parseISO(rental.Tgl_Masuk), "d MMM", { locale: localeId })}</p>
-                                    </div>
-                                )}
-                            </div>
-                        )}
-
-                        {/* AKTIF status banner */}
-                        {tenant && rentalStatus && mode === "view" && !isBooked && (
-                            <div
-                                className={cn(
-                                    "mt-8 p-5 rounded-2xl flex items-center justify-between border transition-all",
-                                    rentalStatus.isOverdue ? "bg-rose-500 border-rose-200 text-white shadow-lg shadow-rose-500/10" : "bg-white border-border text-foreground shadow-soft",
-                                )}
-                            >
-                                <div className="flex items-center gap-4">
-                                    <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center", rentalStatus.isOverdue ? "bg-white/20" : "bg-muted/50")}>
-                                        {rentalStatus.isOverdue ? <AlertTriangle className="w-5 h-5" /> : <Clock className="w-5 h-5 text-muted-foreground" />}
-                                    </div>
-                                    <div className="flex flex-col gap-0.5">
-                                        <p className={cn("text-[9px] font-bold uppercase tracking-widest mb-0 leading-tight", rentalStatus.isOverdue ? "text-white/70" : "text-muted-foreground")}>Status Kontrak</p>
-                                        <p className="text-sm font-bold mb-0 leading-tight">{rentalStatus.isOverdue ? "Melewati Jatuh Tempo" : "Pembayaran Lancar"}</p>
-                                    </div>
-                                </div>
-                                <div className="text-right flex flex-col gap-0.5">
-                                    <p className={cn("text-[9px] font-bold uppercase tracking-widest mb-0 leading-tight", rentalStatus.isOverdue ? "text-white/70" : "text-muted-foreground")}>
-                                        {rentalStatus.isOverdue ? "Terlambat" : "Sisa Hari"}
-                                    </p>
-                                    <p className="text-sm font-bold mb-0 leading-tight">{Math.abs(rentalStatus.sisaHari)} Hari</p>
-                                </div>
-                            </div>
-                        )}
                     </SheetHeader>
                 </div>
 
                 {/* ── Body ── */}
-                <div className="flex-1 overflow-y-auto p-10 space-y-10 font-sans">
+                <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-6 sm:space-y-8 font-sans">
+                    {/* BOOKING status banner */}
+                    {isBooked && mode === "view" && (
+                        <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-200 flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center shrink-0">
+                                    <CalendarClock className="w-4 h-4 text-amber-600" />
+                                </div>
+                                <div className="flex flex-col gap-0.5 text-left">
+                                    <p className="text-[9px] font-bold uppercase tracking-widest text-amber-600 mb-0 leading-tight">Status Booking</p>
+                                    <p className="text-xs font-bold text-foreground mb-0 leading-tight">DP Dibayar — Belum Masuk</p>
+                                </div>
+                            </div>
+                            {rental?.Tgl_Masuk && (
+                                <div className="text-right flex flex-col gap-0.5">
+                                    <p className="text-[9px] font-bold uppercase tracking-widest text-amber-600 mb-0 leading-tight">Check-in</p>
+                                    <p className="text-xs font-bold text-foreground mb-0 leading-tight">{format(parseISO(rental.Tgl_Masuk), "d MMM", { locale: localeId })}</p>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* AKTIF status banner */}
+                    {tenant && rentalStatus && mode === "view" && !isBooked && (
+                        <div
+                            className={cn(
+                                "p-3.5 rounded-xl flex items-center justify-between border transition-all",
+                                rentalStatus.isOverdue ? "bg-rose-500 border-rose-200 text-white shadow-lg shadow-rose-500/10" : "bg-white border-border text-foreground shadow-soft",
+                            )}
+                        >
+                            <div className="flex items-center gap-3">
+                                <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center shrink-0", rentalStatus.isOverdue ? "bg-white/20" : "bg-muted/50")}>
+                                    {rentalStatus.isOverdue ? <AlertTriangle className="w-4 h-4" /> : <Clock className="w-4 h-4 text-muted-foreground" />}
+                                </div>
+                                <div className="flex flex-col gap-0.5 text-left">
+                                    <p className={cn("text-[9px] font-bold uppercase tracking-widest mb-0 leading-tight", rentalStatus.isOverdue ? "text-white/70" : "text-muted-foreground")}>Status Kontrak</p>
+                                    <p className="text-xs font-bold mb-0 leading-tight">{rentalStatus.isOverdue ? "Melewati Jatuh Tempo" : "Pembayaran Lancar"}</p>
+                                </div>
+                            </div>
+                            <div className="text-right flex flex-col gap-0.5">
+                                <p className={cn("text-[9px] font-bold uppercase tracking-widest mb-0 leading-tight", rentalStatus.isOverdue ? "text-white/70" : "text-muted-foreground")}>
+                                    {rentalStatus.isOverdue ? "Terlambat" : "Sisa Hari"}
+                                </p>
+                                <p className="text-xs font-bold mb-0 leading-tight">{Math.abs(rentalStatus.sisaHari)} Hari</p>
+                            </div>
+                        </div>
+                    )}
                     {/* VIEW MODE */}
                     {mode === "view" && (
                         <TenantViewMode
@@ -201,7 +200,7 @@ export default function TenantSheet({ room, tenant, rental, upcomingBookings = [
                 </div>
 
                 {/* ── Footer ── */}
-                <div className="p-8 bg-white border-t border-border font-sans">
+                <div className="p-4 sm:p-5 bg-white border-t border-border font-sans">
                     <TenantSheetFooter
                         mode={mode}
                         setMode={setMode}

@@ -215,11 +215,11 @@ export default function RentalManagement({
         }
     };
 
-    const HEADS = ["Unit & Penyewa", "Masa Sewa", "Harga & DP", "Deposit", "Status", "Aksi"];
+    const HEADS = ["No.", "Unit & Penyewa", "Masa Sewa", "Harga & DP", "Deposit", "Status", "Aksi"];
 
     return (
         <Card className="bg-white/70 backdrop-blur-xl border-white/20 shadow-soft rounded-[2rem] overflow-hidden">
-            <CardHeader className="flex flex-row items-center justify-between border-b border-border p-6">
+            <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-border p-5 sm:p-6 gap-4">
                 <div className="space-y-1">
                     <CardTitle className="text-xl font-bold text-foreground">Transaksi Sewa</CardTitle>
                     <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em]">Riwayat dan status kontrak aktif</p>
@@ -242,7 +242,7 @@ export default function RentalManagement({
                     }
                     className="rounded-xl shadow-lg shadow-orange-500/10 cursor-pointer"
                 >
-                    <Plus className="w-4 h-4 mr-2" /> Tambah Sewa
+                    <Plus className="w-4 h-4 mr-2" /> Tambah
                 </Button>
             </CardHeader>
 
@@ -262,7 +262,11 @@ export default function RentalManagement({
                                 {HEADS.map((head, idx) => (
                                     <TableHead
                                         key={head}
-                                        className={cn("text-[10px] font-bold uppercase tracking-widest text-muted-foreground py-4", idx === 2 || idx === 3 ? "text-right" : "", idx === HEADS.length - 1 ? "text-right pr-8" : "")}
+                                        className={cn(
+                                            "text-[10px] font-bold uppercase tracking-widest text-muted-foreground py-4 whitespace-nowrap",
+                                            idx === 3 || idx === 4 ? "text-right" : "",
+                                            idx === HEADS.length - 1 ? "text-right pr-8" : "",
+                                        )}
                                     >
                                         {head}
                                     </TableHead>
@@ -274,14 +278,14 @@ export default function RentalManagement({
                             {rentals.length === 0 ? (
                                 <TableRow>
                                     <TableCell
-                                        colSpan={7}
+                                        colSpan={8}
                                         className="text-center py-12 text-muted-foreground text-sm font-medium"
                                     >
                                         Belum ada data transaksi sewa
                                     </TableCell>
                                 </TableRow>
                             ) : (
-                                rentals.map((rental) => {
+                                rentals.map((rental, index) => {
                                     const room = rooms.find((r) => r.ID_Kamar === rental.ID_Kamar);
                                     const tenant = tenants.find((t) => t.ID_Penghuni === rental.ID_Penghuni);
                                     const isSelected = selectedIds.includes(rental.ID_Sewa);
@@ -302,6 +306,9 @@ export default function RentalManagement({
                                                     onChange={() => onToggleSelect(rental.ID_Sewa)}
                                                     className="w-4 h-4 rounded accent-primary cursor-pointer"
                                                 />
+                                            </TableCell>
+                                            <TableCell className="text-xs font-bold text-muted-foreground/75 tabular-nums">
+                                                {index + 1}
                                             </TableCell>
 
                                             <TableCell className="py-4">
@@ -397,14 +404,14 @@ export default function RentalManagement({
                     onPointerDownOutside={(e) => e.preventDefault()}
                     className="max-w-4xl w-full bg-white rounded-[2rem] p-0 overflow-hidden shadow-2xl border-0 gap-0 font-sans"
                 >
-                    <DialogHeader className="p-8 bg-muted/20 border-b border-border text-left relative overflow-hidden shrink-0">
+                    <DialogHeader className="p-5 sm:p-6 pr-14 bg-muted/20 border-b border-border text-left relative overflow-hidden shrink-0">
                         <div className="absolute -top-16 -right-16 w-40 h-40 bg-orange-500/5 rounded-full blur-2xl" />
                         <DialogTitle className="text-2xl font-bold tracking-tight">Form Transaksi Sewa</DialogTitle>
                         <DialogDescription className="text-muted-foreground text-xs font-semibold uppercase tracking-widest mt-1">{editingId === "new" ? "Tambah Sewa/Booking Baru" : "Edit Kontrak Transaksi"}</DialogDescription>
                     </DialogHeader>
 
                     {/* Form Two-Column Grid Area */}
-                    <div className="overflow-y-auto max-h-[65vh] p-8">
+                    <div className="overflow-y-auto max-h-[65vh] p-5 sm:p-6">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             {/* Left Column */}
                             <div className="space-y-6">

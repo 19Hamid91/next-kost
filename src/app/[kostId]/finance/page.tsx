@@ -127,9 +127,6 @@ export default function FinancePage() {
                 </div>
             </main>
 
-            <footer className="p-12 text-center opacity-40 select-none">
-                <p className="text-[11px] font-medium uppercase tracking-[0.4em] text-muted-foreground">NextKost Finance Module</p>
-            </footer>
         </div>
     );
 }

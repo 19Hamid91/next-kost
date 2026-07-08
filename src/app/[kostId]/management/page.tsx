@@ -97,7 +97,7 @@ export default function ManagementPage() {
             <Header />
 
             <main className="p-6 md:p-12 max-w-[1440px] mx-auto w-full space-y-12 flex-1">
-                <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-12">
+                <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-6">
                     <div className="space-y-3">
                         <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-foreground">Sistem Manajemen</h1>
                         <p className="text-muted-foreground text-sm font-medium flex items-center gap-2.5">
@@ -109,7 +109,7 @@ export default function ManagementPage() {
 
                 <Tabs
                     defaultValue="rooms"
-                    className="w-full space-y-10"
+                    className="w-full space-y-6"
                     onValueChange={(val) => {
                         setActiveTab(val);
                         clearSelection();

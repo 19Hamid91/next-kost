@@ -123,7 +123,7 @@ export default function RoomCard({ room, tenant, rental, nextRental, nextTenant,
                 ) : null}
 
                 {/* Date range */}
-                {dateRangeLabel && <span className="text-[9px] font-semibold text-muted-foreground leading-tight">{dateRangeLabel}</span>}
+                {dateRangeLabel && <span className="hidden sm:inline text-[9px] font-semibold text-muted-foreground leading-tight">{dateRangeLabel}</span>}
 
                 {/* Overdue indicator */}
                 {isOverdue && <span className="text-[9px] font-bold text-rose-600 uppercase tracking-wide">{Math.abs(sisaHari!)}h lewat</span>}
@@ -131,7 +131,7 @@ export default function RoomCard({ room, tenant, rental, nextRental, nextTenant,
 
             {/* Next-tenant indicator — only when AKTIF + has future booking */}
             {showNextTenant && (
-                <div className="px-3 py-1.5 bg-amber-100/80 border-t border-amber-200 flex items-center gap-1.5">
+                <div className="hidden md:flex px-3 py-1.5 bg-amber-100/80 border-t border-amber-200 items-center gap-1.5">
                     <CalendarClock className="w-3 h-3 text-amber-600 shrink-0" />
                     <span className="text-[9px] font-bold text-amber-700 uppercase tracking-wide truncate">{nextTenant.Nama.split(" ")[0]}</span>
                     {nextMoveIn && <span className="ml-auto text-[9px] font-semibold text-amber-600 shrink-0">{nextMoveIn}</span>}
