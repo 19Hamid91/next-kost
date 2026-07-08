@@ -117,7 +117,7 @@ export default function SearchableSelect({
             left: `${coords.left}px`,
             width: `${coords.width}px`,
           }}
-          className="z-[9999] mt-1 max-h-64 overflow-hidden rounded-xl border border-border bg-white p-1.5 shadow-xl animate-in fade-in-0 zoom-in-95 duration-100 origin-top"
+          className="z-[9999] mt-1 max-h-64 overflow-hidden rounded-xl border border-border bg-white p-1.5 shadow-xl animate-in fade-in-0 zoom-in-95 duration-100 origin-top pointer-events-auto searchable-select-dropdown"
         >
           <div className="relative flex items-center border-b border-border pb-1.5 mb-1.5 px-1">
             <Search className="absolute left-3 h-3.5 w-3.5 text-muted-foreground opacity-50" />

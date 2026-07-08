@@ -13,22 +13,7 @@ export default function DashboardPage() {
     const params = useParams();
     const kostId = params.kostId as string;
 
-    const {
-        isLoading,
-        stats,
-        currentKost,
-        filteredRooms,
-        roomsWithOccupancy,
-        allTenants,
-        allRentals,
-        selectedRoom,
-        selectedTenant,
-        selectedRental,
-        selectedOccupancy,
-        isSheetOpen,
-        handleRoomClick,
-        closeSheet,
-    } = useDashboard(kostId);
+    const { isLoading, stats, currentKost, filteredRooms, roomsWithOccupancy, allTenants, allRentals, selectedRoom, selectedTenant, selectedRental, selectedOccupancy, isSheetOpen, handleRoomClick, closeSheet } = useDashboard(kostId);
 
     if (isLoading) {
         return (
